@@ -1,0 +1,14 @@
+# Core dependencies for Level 1
+openai>=1.0.0
+pytest>=7.4.0
+pytest-timeout>=2.1.0
+
+# Visual demonstrations
+streamlit>=1.28.0
+rich>=13.0.0
+pandas>=2.0.0
+jupyter>=1.0.0
+ipython>=8.0.0
+
+# Optional: For real LLM integration
+python-dotenv>=1.0.0
