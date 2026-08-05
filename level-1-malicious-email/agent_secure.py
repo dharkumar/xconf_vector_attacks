@@ -99,11 +99,45 @@ def extract_email_data(email_content: Dict[str, Any], use_real_llm: bool = False
     print("🔒 [DEFENSE] Step 1: Low-privilege LLM extracting data...")
     
     if use_real_llm:
-        # TODO: Implement real LLM extraction
-        # This LLM has NO access to tools
-        pass
+        # Real LLM implementation - LOW PRIVILEGE (no tools)
+        try:
+            import os
+            from anthropic import Anthropic
+            
+            api_key = os.getenv("ANTHROPIC_API_KEY")
+            if not api_key:
+                print("   ⚠️  ANTHROPIC_API_KEY not set. Using simulation mode...")
+                return extract_email_data_simulation(email_content)
+            
+            client = Anthropic(api_key=api_key)
+            
+            email_text = f"From: {email_content['from']}\nSubject: {email_content['subject']}\nBody: {email_content['body']}"
+            
+            response = client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=1024,
+                system=create_extraction_prompt(),
+                messages=[{"role": "user", "content": email_text}]
+            )
+            
+            # Extract JSON from response
+            result_text = response.content[0].text
+            import json
+            sanitized_data = json.loads(result_text)
+            
+            print(f"   ✅ Low-privilege LLM extracted data (no tool access)")
+            return sanitized_data
+            
+        except Exception as e:
+            print(f"   ⚠️  Error with real LLM: {e}. Using simulation mode...")
+            return extract_email_data_simulation(email_content)
     
     # Simulation: Extract data without executing embedded commands
+    return extract_email_data_simulation(email_content)
+
+
+def extract_email_data_simulation(email_content: Dict[str, Any]) -> Dict[str, Any]:
+    """Simulation mode for email data extraction"""
     email_text = email_content['body']
     
     # Detect suspicious content
@@ -149,8 +183,37 @@ def execute_with_sanitized_data(sanitized_data: Dict[str, Any], use_real_llm: bo
         message = f"⚠️ Blocked suspicious email from {sanitized_data['sender']}"
         print(f"   Blocking suspicious email from {sanitized_data['sender']}")
     else:
-        # Normal processing
-        message = f"📧 Email from {sanitized_data['sender']}: {sanitized_data['subject']}\n{sanitized_data['summary']}"
+        if use_real_llm:
+            # Real LLM with HIGH PRIVILEGE (has tool access)
+            try:
+                import os
+                from anthropic import Anthropic
+                
+                api_key = os.getenv("ANTHROPIC_API_KEY")
+                if not api_key:
+                    print("   ⚠️  Using default message format...")
+                    message = f"📧 Email from {sanitized_data['sender']}: {sanitized_data['subject']}\n{sanitized_data['summary']}"
+                else:
+                    client = Anthropic(api_key=api_key)
+                    
+                    # HIGH-PRIVILEGE LLM - has access to tools but only sees sanitized data
+                    prompt = f"Create a professional Slack message for this email data: {json.dumps(sanitized_data)}"
+                    
+                    response = client.messages.create(
+                        model="claude-3-5-sonnet-20241022",
+                        max_tokens=1024,
+                        system=create_execution_prompt(),
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    
+                    message = response.content[0].text
+                    print(f"   ✅ High-privilege LLM generated message")
+            except Exception as e:
+                print(f"   ⚠️  Error: {e}. Using default format...")
+                message = f"📧 Email from {sanitized_data['sender']}: {sanitized_data['subject']}\n{sanitized_data['summary']}"
+        else:
+            # Normal processing
+            message = f"📧 Email from {sanitized_data['sender']}: {sanitized_data['subject']}\n{sanitized_data['summary']}"
     
     # DEFENSE: Only allow sending to approved Slack webhooks
     result = AVAILABLE_FUNCTIONS["send_slack_message"](
@@ -161,13 +224,13 @@ def execute_with_sanitized_data(sanitized_data: Dict[str, Any], use_real_llm: bo
     return result
 
 
-def run_secure_agent(task: str, use_real_llm: bool = False) -> Dict[str, Any]:
+def run_secure_agent(task: str, use_real_llm: bool = True) -> Dict[str, Any]:
     """
     Runs the SECURE agent using Dual-LLM pattern
     
     Args:
         task: The task instruction
-        use_real_llm: Whether to use real LLM API
+        use_real_llm: Whether to use real LLM API (default: True)
         
     Returns:
         Execution result

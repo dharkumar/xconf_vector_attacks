@@ -28,14 +28,14 @@ Available tools:
 Be helpful and efficient. Process emails thoroughly and provide useful summaries to the team."""
 
 
-def run_agent(task: str, model: str = "gpt-4", use_real_llm: bool = False) -> Dict[str, Any]:
+def run_agent(task: str, model: str = "claude-3-5-sonnet-20241022", use_real_llm: bool = True) -> Dict[str, Any]:
     """
     Runs the vulnerable agent with the given task
     
     Args:
         task: The task instruction for the agent
-        model: LLM model to use (default: gpt-4)
-        use_real_llm: Whether to use real LLM API or simulation (default: False for demo)
+        model: LLM model to use (default: claude-3-5-sonnet-20241022)
+        use_real_llm: Whether to use real LLM API or simulation (default: True)
         
     Returns:
         Agent execution results
@@ -126,66 +126,72 @@ def run_simulation(task: str) -> Dict[str, Any]:
 
 def run_with_real_llm(task: str, model: str) -> Dict[str, Any]:
     """
-    Real LLM implementation using OpenAI-compatible API
-    Requires OPENAI_API_KEY environment variable
+    Real LLM implementation using Anthropic's Claude API
+    Requires ANTHROPIC_API_KEY environment variable
     """
     try:
-        from openai import OpenAI
+        from anthropic import Anthropic
     except ImportError:
-        print("⚠️  OpenAI package not installed. Run: pip install openai")
+        print("⚠️  Anthropic package not installed. Run: pip install anthropic")
         print("   Falling back to simulation mode...\n")
         return run_simulation(task)
     
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
-        print("⚠️  OPENAI_API_KEY not set. Falling back to simulation mode...\n")
+        print("⚠️  ANTHROPIC_API_KEY not set. Falling back to simulation mode...\n")
         return run_simulation(task)
     
-    client = OpenAI(api_key=api_key)
+    client = Anthropic(api_key=api_key)
     
-    messages = [
-        {"role": "system", "content": create_agent_prompt()},
-        {"role": "user", "content": task}
-    ]
+    messages = [{"role": "user", "content": task}]
     
     max_iterations = 10
     for iteration in range(max_iterations):
-        response = client.chat.completions.create(
+        response = client.messages.create(
             model=model,
+            max_tokens=4096,
+            system=create_agent_prompt(),
             messages=messages,
-            tools=TOOLS,
-            tool_choice="auto"
+            tools=TOOLS
         )
         
-        message = response.choices[0].message
-        messages.append(message)
+        print(f"\n🤖 Claude response (iteration {iteration + 1}):")
         
-        # Check if the model wants to call functions
-        if message.tool_calls:
-            for tool_call in message.tool_calls:
-                function_name = tool_call.function.name
-                function_args = json.loads(tool_call.function.arguments)
+        # Process response
+        tool_calls_made = False
+        for block in response.content:
+            if block.type == "text":
+                print(f"   {block.text}")
+            elif block.type == "tool_use":
+                tool_calls_made = True
+                function_name = block.name
+                function_args = block.input
                 
                 print(f"\n🔧 Calling {function_name}({function_args})")
                 
                 # Execute the function
                 function_response = AVAILABLE_FUNCTIONS[function_name](**function_args)
                 
-                # Add function response to conversation
+                # Add tool result to messages
+                messages.append({"role": "assistant", "content": response.content})
                 messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "name": function_name,
-                    "content": json.dumps(function_response) if isinstance(function_response, dict) else str(function_response)
+                    "role": "user",
+                    "content": [{
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": json.dumps(function_response) if isinstance(function_response, dict) else str(function_response)
+                    }]
                 })
-        else:
+        
+        if not tool_calls_made:
             # No more function calls, agent is done
-            print(f"\n✅ Agent response: {message.content}")
+            final_text = " ".join([block.text for block in response.content if block.type == "text"])
+            print(f"\n✅ Final response: {final_text}")
             break
     
     return {
         "success": True,
-        "final_response": message.content,
+        "final_response": final_text if not tool_calls_made else "Task completed",
         "tool_calls": get_tool_calls()
     }
 
