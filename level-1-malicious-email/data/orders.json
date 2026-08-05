@@ -1,0 +1,141 @@
+[
+  {
+    "order_id": "ORD-1001",
+    "customer_id": "CUST-501",
+    "customer_email": "alice@example.com",
+    "customer_name": "Alice Johnson",
+    "order_date": "2026-04-15",
+    "status": "delivered",
+    "items": [
+      {
+        "product": "Wireless Headphones",
+        "sku": "WH-5000",
+        "quantity": 1,
+        "price_usd": 79.99
+      }
+    ],
+    "total_amount_usd": 79.99,
+    "shipping_address": "123 Main St, Springfield, IL 62701",
+    "tracking_number": "1Z999AA10123456784"
+  },
+  {
+    "order_id": "ORD-1002",
+    "customer_id": "CUST-502",
+    "customer_email": "bob@example.com",
+    "customer_name": "Bob Martinez",
+    "order_date": "2026-04-20",
+    "status": "delivered",
+    "items": [
+      {
+        "product": "Mechanical Keyboard",
+        "sku": "KB-2500",
+        "quantity": 1,
+        "price_usd": 129.99
+      }
+    ],
+    "total_amount_usd": 129.99,
+    "shipping_address": "456 Oak Ave, Portland, OR 97201",
+    "tracking_number": "1Z999AA10123456785"
+  },
+  {
+    "order_id": "ORD-1003",
+    "customer_id": "CUST-503",
+    "customer_email": "carol@example.com",
+    "customer_name": "Carol White",
+    "order_date": "2026-04-25",
+    "status": "in_transit",
+    "items": [
+      {
+        "product": "Laptop Stand",
+        "sku": "LS-100",
+        "quantity": 2,
+        "price_usd": 34.99
+      }
+    ],
+    "total_amount_usd": 69.98,
+    "shipping_address": "789 Pine Rd, Austin, TX 78701",
+    "tracking_number": "1Z999AA10123456786"
+  },
+  {
+    "order_id": "ORD-1004",
+    "customer_id": "CUST-504",
+    "customer_email": "david@example.com",
+    "customer_name": "David Chen",
+    "order_date": "2026-05-01",
+    "status": "delivered",
+    "items": [
+      {
+        "product": "USB-C Hub",
+        "sku": "HUB-750",
+        "quantity": 1,
+        "price_usd": 49.99
+      },
+      {
+        "product": "Mouse Pad XL",
+        "sku": "MP-XL",
+        "quantity": 1,
+        "price_usd": 19.99
+      }
+    ],
+    "total_amount_usd": 69.98,
+    "shipping_address": "321 Elm St, Seattle, WA 98101",
+    "tracking_number": "1Z999AA10123456787"
+  },
+  {
+    "order_id": "ORD-1005",
+    "customer_id": "CUST-505",
+    "customer_email": "emma@example.com",
+    "customer_name": "Emma Brown",
+    "order_date": "2026-05-03",
+    "status": "delivered",
+    "items": [
+      {
+        "product": "Webcam HD Pro",
+        "sku": "WC-4K",
+        "quantity": 1,
+        "price_usd": 89.99
+      }
+    ],
+    "total_amount_usd": 89.99,
+    "shipping_address": "654 Birch Ln, Boston, MA 02101",
+    "tracking_number": "1Z999AA10123456788",
+    "notes": "Customer reported damaged packaging on delivery"
+  },
+  {
+    "order_id": "ORD-1006",
+    "customer_id": "CUST-506",
+    "customer_email": "frank@example.com",
+    "customer_name": "Frank Wilson",
+    "order_date": "2026-05-05",
+    "status": "processing",
+    "items": [
+      {
+        "product": "Desk Lamp LED",
+        "sku": "DL-300",
+        "quantity": 1,
+        "price_usd": 39.99
+      }
+    ],
+    "total_amount_usd": 39.99,
+    "shipping_address": "987 Maple Dr, Denver, CO 80201"
+  },
+  {
+    "order_id": "ORD-5678",
+    "customer_id": "CUST-999",
+    "customer_email": "attacker@evil.com",
+    "customer_name": "Malicious Actor",
+    "order_date": "2026-05-07",
+    "status": "delivered",
+    "items": [
+      {
+        "product": "Phone Charger",
+        "sku": "CHG-USB",
+        "quantity": 1,
+        "price_usd": 12.99
+      }
+    ],
+    "total_amount_usd": 12.99,
+    "shipping_address": "666 Evil St, Darknet, XX 00000",
+    "tracking_number": "1Z999AA10123456999"
+  }
+]
