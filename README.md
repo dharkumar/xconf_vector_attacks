@@ -74,37 +74,36 @@ Level 4: Database Poisoning    [⭐⭐⭐⭐⭐] Stored/Second-Order Injection
 
 ---
 
-### ✅ Level 1: ShopBot Email Integration (REFACTORED & VALIDATED)
+### ✅ Level 1: ShopBot Prompt Injection Attack (COMPLETE & INTERACTIVE!)
 
-**Attack Vector:** Indirect Prompt Injection via Customer Support Emails  
+**Attack Vector:** Direct Prompt Injection via Live Chat Interface  
 **Difficulty:** ⭐⭐☆☆☆ (Beginner)  
-**Defense:** Dual-LLM Pattern + Egress Filtering
+**Defense:** Input Sanitization + Tool Access Control + Amount Limits
 
 **Scenario:**
-ShopBot automatically processes incoming customer support emails to extract order IDs, validate refund requests, and send confirmation emails. An attacker embeds malicious instructions in an email body that tricks the agent into:
+ShopBot provides live customer support chat where users can check orders and request refunds. An attacker types malicious prompts directly into the chat that trick the agent into:
 1. Accessing sensitive API credentials via `lookup_api_keys()`
-2. Encoding the credentials as base64
-3. Exfiltrating them to `attacker@evil.com`
+2. Processing unauthorized large refunds
+3. Bypassing security controls through social engineering
 
-**Status:** 🟢 **Fully Refactored to ShopBot Theme**  
-**Test Coverage:** ✅ Core files updated (tools.py, agent.py, exploit.py)  
-**Location:** [`level-1-malicious-email/`](level-1-malicious-email/)
+**Status:** 🟢 **Complete Interactive Experience with Multiple Demo Modes**  
+**Test Coverage:** ✅ CLI agents, Streamlit web app, copyable attack examples  
+**Location:** [`level-1-prompt-injection-attack/`](level-1-prompt-injection-attack/)
 
-**Quick Start:**
+**Quick Start (3 Options):**
 ```bash
-cd level-1-malicious-email
+cd level-1-prompt-injection-attack
 
-# See the attack
-python3 exploit.py
+# Option 1: CLI Chat (Fastest - No Setup!)
+python3 chat_agent.py              # Vulnerable version
+python3 chat_agent_secure.py       # Secure version
 
-# See the defense
-python3 agent_secure.py
+# Option 2: Streamlit Web App (Best for Workshops!)
+streamlit run chat_app.py          # 5 interactive tabs
 
-# Run complete demo (attack + defense + comparison)
-python3 demo_complete.py
-
-# Run automated tests
-pytest test_security.py -v
+# Option 3: Old Email-Based Demos (Still Available)
+python3 exploit.py                 # Email attack demo
+python3 agent_secure.py            # Email defense
 ```
 
 **Attack Example:**
@@ -152,7 +151,7 @@ Thank you!
 - ✅ **Automated security tests** with validation framework
 - ✅ **Real-time LLM demonstrations** with Claude (Anthropic) support
 
-[→ View Level 1 Details](level-1-malicious-email/README.md) | [📋 View Workshop Spec](WORKSHOP_SPEC.md)
+[→ View Level 1 Details](level-1-prompt-injection-attack/README.md) | [📋 View Workshop Spec](WORKSHOP_SPEC.md)
 
 ---
 
@@ -313,8 +312,8 @@ ShopBot queries DB → Loads poisoned name field → Executes payload
 git clone <repository-url>
 cd xconf_vector_attacks
 
-# Start with Level 1: ShopBot Email Integration
-cd level-1-malicious-email
+# Start with Level 1: ShopBot Prompt Injection Attack
+cd level-1-prompt-injection-attack
 
 # Set up your Anthropic API key (optional for simulation mode)
 cp .env.example .env
@@ -323,14 +322,12 @@ cp .env.example .env
 # Install dependencies (optional for basic demos)
 pip install -r requirements.txt
 
-# Run the attack demo
-python3 exploit.py
-
-# Run the defense demo (if agent_secure.py updated)
-python3 agent_secure.py
+# Run the interactive chat demos
+python3 chat_agent.py              # Vulnerable CLI chat
+python3 chat_agent_secure.py       # Secure CLI chat
 
 # For visual demos
-streamlit run app.py
+streamlit run chat_app.py          # 5-tab web interface
 ```
 
 ---
@@ -349,7 +346,7 @@ streamlit run app.py
 
 ### Hands-On Labs
 
-- **Level 1:** [`level-1-malicious-email/`](level-1-malicious-email/) - ShopBot Email Integration (Core refactored)
+- **Level 1:** [`level-1-prompt-injection-attack/`](level-1-prompt-injection-attack/) - ShopBot Interactive Chat Experience (Complete)
 
 ---
 
@@ -442,19 +439,17 @@ xconf_vector_attacks/
 ├── Prompt injection explanation.docx            # ShopBot scenarios
 ├── Prompt Injection.docx                        # Attack vectors
 │
-├── level-1-malicious-email/                     # ✅ REFACTORED TO SHOPBOT
-│   ├── README.md                # Level documentation
-│   ├── QUICKSTART.md            # 5-minute quick start
-│   ├── VISUAL_DEMOS.md          # Demo mode comparison
-│   ├── VALIDATION_REPORT.md     # Security validation results
-│   ├── agent.py                 # Vulnerable ShopBot agent
-│   ├── agent_secure.py          # Secure implementation (Dual-LLM)
-│   ├── exploit.py               # Attack demonstration (EMAIL-006)
-│   ├── tools.py                 # ShopBot API tools (6 functions)
-│   ├── demo_complete.py         # Comprehensive demo script
-│   ├── app.py                   # Streamlit web app
-│   ├── demo_rich.py             # Rich terminal demo
-│   ├── Level_1_Interactive_Tutorial.ipynb
+├── level-1-prompt-injection-attack/             # ✅ COMPLETE INTERACTIVE EXPERIENCE
+│   ├── chat_agent.py            # Vulnerable CLI chat agent
+│   ├── chat_agent_secure.py     # Secure CLI chat agent
+│   ├── chat_app.py              # Streamlit web app (5 tabs)
+│   ├── mocked_tools.py          # Dramatic visual tool output
+│   ├── CHAT_QUICKSTART.md       # Quick start guide
+│   ├── INTERACTIVE_CHAT_DEMO.md # Comprehensive tutorial
+│   ├── agent.py                 # Legacy: email-based vulnerable agent
+│   ├── agent_secure.py          # Legacy: email-based secure agent
+│   ├── exploit.py               # Legacy: email attack demo
+│   ├── tools.py                 # Legacy: email-based tools
 │   ├── test_security.py         # Automated security tests
 │   └── data/
 │       ├── customer_emails.json # 8 emails (4 legit + 4 attacks)
@@ -534,25 +529,24 @@ Traditional security controls (input validation, SQL injection prevention, XSS f
 **Want to see it in action right now?**
 
 ```bash
-cd level-1-malicious-email
+cd level-1-prompt-injection-attack
 
-# Option 1: No installation required - Basic demo
-python3 agent.py                # Interactive demo (legit + attack)
-python3 exploit.py              # Detailed attack analysis
+# Option 1: Interactive CLI Chat (Fastest - No Setup!)
+python3 chat_agent.py              # Vulnerable chat agent
+python3 chat_agent_secure.py       # Secure chat agent
 
-# Option 2: Visual demos (requires: pip install -r requirements.txt)
-streamlit run app.py            # Interactive web app
-jupyter notebook Level_1_Interactive_Tutorial.ipynb
+# Option 2: Streamlit Web App (Best for Workshops!)
+streamlit run chat_app.py          # 5 interactive tabs with copyable attacks
 
-# Option 3: Run automated tests
-pip install pytest
-pytest test_security.py -v      # Security validation suite
+# Option 3: Legacy Email-Based Demos (Still Available)
+python3 exploit.py                 # Email attack demo
+python3 agent_secure.py            # Email defense demo
 ```
 
 **Choose your preferred mode:**
-- 💻 **Command line** - Works immediately, no setup
-- 🌐 **Web app** - Best for workshops and presentations
-- 📓 **Jupyter** - Self-paced learning with interactive cells
+- 💻 **CLI Chat** - Interactive, immediate, no setup
+- 🌐 **Streamlit Web App** - Best for workshops and presentations
+- 📓 **Legacy Demos** - Email-based attacks (original approach)
 - ✅ **Tests** - Verify all security controls
 
 ---
