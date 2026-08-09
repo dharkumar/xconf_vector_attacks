@@ -11,12 +11,16 @@ Run this to see how easy it is to trick an LLM agent into leaking credentials!
 import os
 import sys
 import json
+from dotenv import load_dotenv
 from mocked_tools import (
     TOOLS, AVAILABLE_FUNCTIONS, 
     Colors, 
     reset_tool_call_history,
     print_attack_summary
 )
+
+# Load environment variables from .env file
+load_dotenv()
 
 def create_system_prompt() -> str:
     """System prompt for the vulnerable ShopBot agent"""
