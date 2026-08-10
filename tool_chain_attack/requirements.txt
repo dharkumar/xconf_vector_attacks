@@ -1,0 +1,7 @@
+# Tool Chain Attack Demo - Dependencies
+
+# Claude API for LLM agent
+anthropic>=0.40.0
+
+# Environment variable management
+python-dotenv>=1.0.0
