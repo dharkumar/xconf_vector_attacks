@@ -25,13 +25,24 @@ Step 2: issue_refund('CUST-999', 1500)  ✓ BYPASSES $500 limit!
 
 ## 📦 What's Included
 
-### Core Files
-- **`shopbot_tools.py`** - Tool implementations (order lookup, refunds, email, API keys)
-- **`vulnerable_agent.py`** - Agent with NO validation (demonstrates vulnerability)
+### Vulnerable Agents (Attack Demonstrations)
+- **`vulnerable_agent.py`** - ❌ Claude agent with NO validation
+- **`vulnerable_agent_ollama.py`** - ❌ Ollama agent with NO validation
 - **`demo_attack_1.py`** - Conditional refund attack
 - **`demo_attack_2.py`** - Multi-step workflow attack
 - **`demo_attack_3.py`** - Data exfiltration attack
+- **`demo_attack_1_ollama.py`** - Ollama version of attack 1
 - **`interactive_chat.py`** - Try your own attacks
+
+### Secure Agents (Defense Demonstrations) 🛡️
+- **`secure_agent.py`** - ✅ Claude agent with multi-layer security
+- **`secure_agent_ollama.py`** - ✅ Ollama agent with multi-layer security
+- **`defense_patterns.py`** - Security validation modules
+- **`demo_secure_comparison.py`** - Side-by-side vulnerable vs secure comparison
+- **`SECURITY_IMPLEMENTATION.md`** - Complete security documentation
+
+### Core Files
+- **`shopbot_tools.py`** - Tool implementations (order lookup, refunds, email, API keys)
 
 ### Configuration
 - **`requirements.txt`** - Python dependencies
@@ -200,42 +211,92 @@ for tool_use in tool_uses:
 
 ---
 
-## 🛡️ Defense Strategies
+## 🛡️ Defense Strategies - NOW IMPLEMENTED!
 
-### What's Missing (The Security Gap)
+### ✅ Secure Agents Available
 
-```python
-# Should validate BEFORE execution:
-def validate_tool_chain(tool_chain):
-    # Check 1: Detect conditional logic
-    if has_conditionals(tool_chain):
-        return False
-    
-    # Check 2: Validate amounts
-    for tool in tool_chain:
-        if tool.name == 'issue_refund':
-            if tool.input['amount_usd'] > 500:
-                return False
-    
-    # Check 3: Block sensitive tools
-    if any(t.name == 'lookup_api_keys' for t in tool_chain):
-        return False
-    
-    # Check 4: Limit chain length
-    if len(tool_chain) > 3:
-        return False  # Too complex
-    
-    return True
+We now have **fully functional secure agents** that implement all defense mechanisms!
+
+```bash
+# Test the secure agent
+python3 secure_agent.py
+
+# Compare vulnerable vs secure side-by-side
+python3 demo_secure_comparison.py
+
+# Read complete security documentation
+cat SECURITY_IMPLEMENTATION.md
 ```
 
-### Key Defense Mechanisms
+### Multi-Layer Security Architecture
 
-1. **Input Analysis** - Detect conditional keywords (if, when, then, workflow)
-2. **Chain Validation** - Analyze complete tool sequence before execution
-3. **Amount Limits** - Hard-coded caps regardless of context
-4. **Tool Restrictions** - Remove sensitive tools entirely
-5. **Human Approval** - Require confirmation for multi-step operations
-6. **Egress Filtering** - Whitelist email domains
+The secure agents implement **5 defense layers**:
+
+```
+INPUT → [Layer 1: Input Filter] → [Layer 2: Chain Analysis] → 
+[Layer 3: Hardened Prompt] → [LLM] → [Layer 4: Tool Chain Validator] → 
+[Layer 5: Individual Tool Validator] → EXECUTE
+```
+
+**Each layer blocks different attack types:**
+
+1. **Input Normalization & Filtering** (Pre-LLM)
+   - Expand leetspeak obfuscation
+   - Remove zero-width characters
+   - Block suspicious keywords
+   - Detect hypothetical framing
+   - Detect authority spoofing
+
+2. **Tool Chain Analysis** (Pre-LLM)
+   - Detect conditional logic ("if X then Y")
+   - Detect automation keywords
+   - Detect fake policy claims
+
+3. **Hardened System Prompt**
+   - Explicit security guidelines
+   - Amount limits documented
+   - Verification requirements
+
+4. **Tool Chain Validation** (Post-LLM)
+   - Validate entire chain structure
+   - Block chains > 3 tools
+   - Detect suspicious patterns
+   - Check for check_order + issue_refund combo
+
+5. **Individual Tool Validation**
+   - Block sensitive tools (lookup_api_keys)
+   - Enforce $500 refund limit
+   - Validate all parameters
+   - Log all attempts
+
+### Implementation Examples
+
+```python
+# From defense_patterns.py:
+
+# Detect conditional logic
+if "if" in text and "then" in text:
+    return "BLOCKED: Conditional logic detected"
+
+# Enforce amount limits
+if tool == 'issue_refund' and amount > 500:
+    return "BLOCKED: Amount exceeds $500 limit"
+
+# Block sensitive tools
+if tool_name == 'lookup_api_keys':
+    return "BLOCKED: Admin function restricted"
+```
+
+### Test the Defenses
+
+```bash
+# Run the same attacks against secure agent
+python3 demo_secure_comparison.py
+```
+
+**Result**: All 3 attacks are BLOCKED! 🛡️
+
+See `SECURITY_IMPLEMENTATION.md` for complete details.
 
 ---
 
@@ -362,19 +423,29 @@ Want to add more attack patterns or improve defenses?
 
 ```
 tool_chain_attack/
-├── README.md                 # This file
-├── requirements.txt          # Dependencies
-├── .env.example              # API key template
-├── .gitignore                # Git ignores
+├── README.md                      # This file
+├── SECURITY_IMPLEMENTATION.md     # 🛡️ Complete security guide
+├── requirements.txt               # Dependencies
+├── .env.example                   # API key template
+├── .gitignore                     # Git ignores
 │
-├── shopbot_tools.py          # Tool implementations
-├── vulnerable_agent.py       # Agent without validation
+├── shopbot_tools.py               # Tool implementations
 │
-├── demo_attack_1.py          # Conditional attack
-├── demo_attack_2.py          # Workflow attack
-├── demo_attack_3.py          # Exfiltration attack
+├── vulnerable_agent.py            # ❌ Claude agent (NO security)
+├── vulnerable_agent_ollama.py     # ❌ Ollama agent (NO security)
 │
-└── interactive_chat.py       # Interactive mode
+├── secure_agent.py                # ✅ Claude agent (SECURED)
+├── secure_agent_ollama.py         # ✅ Ollama agent (SECURED)
+├── defense_patterns.py            # 🛡️ Security validation modules
+│
+├── demo_attack_1.py               # Conditional attack (Claude)
+├── demo_attack_1_ollama.py        # Conditional attack (Ollama)
+├── demo_attack_2.py               # Workflow attack
+├── demo_attack_3.py               # Exfiltration attack
+│
+├── demo_secure_comparison.py      # 📊 Vulnerable vs Secure demo
+│
+└── interactive_chat.py            # Interactive mode
 ```
 
 ---
@@ -388,18 +459,26 @@ cp .env.example .env
 # Edit .env with your ANTHROPIC_API_KEY
 ```
 
-**Run:**
+**Test Vulnerable:**
 ```bash
-python3 vulnerable_agent.py    # Test agent
-python3 demo_attack_1.py       # Demo 1
-python3 demo_attack_2.py       # Demo 2
-python3 demo_attack_3.py       # Demo 3
-python3 interactive_chat.py    # Interactive
+python3 vulnerable_agent.py    # Test vulnerable agent
+python3 demo_attack_1.py       # Attack 1 (Claude refuses)
+python3 demo_attack_1_ollama.py # Attack 1 (Mistral complies!)
+python3 demo_attack_2.py       # Attack 2
+python3 demo_attack_3.py       # Attack 3
 ```
 
-**Key Takeaway:**
-> In LLM systems, **multi-step attacks bypass single-action defenses**.
-> Validate the entire tool chain, not just individual tools.
+**Test Secure:** 🛡️
+```bash
+python3 secure_agent.py            # Test secure agent
+python3 secure_agent_ollama.py     # Secure Ollama version
+python3 demo_secure_comparison.py  # Compare vulnerable vs secure
+```
+
+**Key Takeaways:**
+> **Attack**: Multi-step attacks bypass single-action defenses.
+> **Defense**: Validate the entire tool chain with multiple layers.
+> **Reality**: LLM safety training ≠ application security. Always add validation!
 
 ---
 

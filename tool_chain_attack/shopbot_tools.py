@@ -340,3 +340,30 @@ AVAILABLE_TOOLS = {
     "send_customer_email": send_customer_email,
     "lookup_api_keys": lookup_api_keys
 }
+
+
+def get_ollama_tools():
+    """
+    Convert Anthropic tool schemas to Ollama format.
+    
+    Ollama expects tools in OpenAI function calling format.
+    
+    Returns:
+        List of tools in Ollama format
+    """
+    ollama_tools = []
+    for tool in TOOL_SCHEMAS:
+        ollama_tool = {
+            "type": "function",
+            "function": {
+                "name": tool["name"],
+                "description": tool["description"],
+                "parameters": {
+                    "type": "object",
+                    "properties": tool["input_schema"]["properties"],
+                    "required": tool["input_schema"].get("required", [])
+                }
+            }
+        }
+        ollama_tools.append(ollama_tool)
+    return ollama_tools
