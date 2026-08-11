@@ -7,6 +7,7 @@ ShopBot, with a live view of the vector store, retrieval results, and tool execu
 Supports both Claude and Ollama, vulnerable and secure agents.
 """
 
+import html
 import os
 import re
 import sys
@@ -306,9 +307,9 @@ with col1:
         else:
             validated_ids = st.session_state.last_validated_ids
             for i, doc in enumerate(st.session_state.last_retrieved, 1):
-                doc_id = doc_identity(doc)
+                doc_id = html.escape(doc_identity(doc))
                 is_poisoned = doc.get("metadata", {}).get("is_poisoned", False)
-                blocked = validated_ids is not None and doc_id not in validated_ids
+                blocked = validated_ids is not None and doc_identity(doc) not in validated_ids
 
                 if is_poisoned and blocked:
                     st.markdown(
@@ -344,8 +345,11 @@ with col2:
     for msg in st.session_state.messages:
         css_class = "user-message" if msg["role"] == "user" else "bot-message"
         speaker = "👤 Customer" if msg["role"] == "user" else "🤖 ShopBot"
+        # Escaped: chat content includes raw user input and LLM output, which can
+        # itself echo attacker-authored document text - never trust it as HTML.
+        safe_content = html.escape(msg["content"]).replace("\n", "<br>")
         st.markdown(
-            f'<div class="chat-message {css_class}"><strong>{speaker}:</strong><br>{msg["content"]}</div>',
+            f'<div class="chat-message {css_class}"><strong>{speaker}:</strong><br>{safe_content}</div>',
             unsafe_allow_html=True
         )
 
@@ -438,23 +442,26 @@ with col2:
             st.subheader("🔧 Tool Calls Executed")
             for i, call in enumerate(st.session_state.tool_calls, 1):
                 params = {k: v for k, v in call.items() if k != "tool"}
-                param_str = ", ".join(f"{k}={v}" for k, v in params.items())
-                st.markdown(f'<div class="tool-call">{i}. <strong>{call["tool"]}</strong>({param_str})</div>', unsafe_allow_html=True)
+                param_str = html.escape(", ".join(f"{k}={v}" for k, v in params.items()))
+                tool_name = html.escape(call["tool"])
+                st.markdown(f'<div class="tool-call">{i}. <strong>{tool_name}</strong>({param_str})</div>', unsafe_allow_html=True)
 
         if is_ollama and st.session_state.mentioned_tools:
             st.divider()
             st.warning("⚠️ Mentioned in text but NOT actually executed (no real tool call was made):")
             for i, tool in enumerate(st.session_state.mentioned_tools, 1):
-                st.markdown(f'<div class="tool-call">{i}. <strong>{tool["tool"]}</strong>(...)</div>', unsafe_allow_html=True)
+                tool_name = html.escape(tool["tool"])
+                st.markdown(f'<div class="tool-call">{i}. <strong>{tool_name}</strong>(...)</div>', unsafe_allow_html=True)
 
     if st.session_state.attack_result:
         st.divider()
         result = st.session_state.attack_result
+        detail = html.escape(result["detail"])
         if result["state"] == "success":
             st.markdown(f"""
             <div class="attack-success">
                 <h3>🔴 ATTACK SUCCESSFUL!</h3>
-                <p>{result['detail']}</p>
+                <p>{detail}</p>
                 <p><em>The poisoned document's hidden instructions were carried out.</em></p>
             </div>
             """, unsafe_allow_html=True)
@@ -462,7 +469,7 @@ with col2:
             st.markdown(f"""
             <div class="attack-blocked">
                 <h3>🛡️ ATTACK BLOCKED!</h3>
-                <p>{result['detail']}</p>
+                <p>{detail}</p>
                 <p><em>Security defenses caught it before the LLM ever saw it.</em></p>
             </div>
             """, unsafe_allow_html=True)
@@ -470,7 +477,7 @@ with col2:
             st.markdown(f"""
             <div class="attack-declined">
                 <h3>✋ MODEL DECLINED TO ACT</h3>
-                <p>{result['detail']}</p>
+                <p>{detail}</p>
                 <p><em>Retrieval succeeded (the vulnerability exists), but the model didn't act on it this run - outcome is model-dependent.</em></p>
             </div>
             """, unsafe_allow_html=True)
