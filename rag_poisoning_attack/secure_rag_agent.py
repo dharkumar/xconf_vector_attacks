@@ -82,6 +82,8 @@ class SecureRAGAgent:
         self.retrieval_monitor = RetrievalMonitor()
         self.blocked_documents = []
         self.security_events = []
+        self.last_raw_retrieved = []  # pre-filter, exposed for UI introspection
+        self.last_validated_docs = []  # post-filter, exposed for UI introspection
 
         # Initialize knowledge base
         print(f"\n{Colors.BOLD}{Colors.GREEN}{'=' * 70}{Colors.RESET}")
@@ -114,6 +116,7 @@ class SecureRAGAgent:
             {**r, 'metadata': {**r['metadata'], 'doc_id': r['id']}}
             for r in raw_results
         ]
+        self.last_raw_retrieved = enriched  # exposed for UI introspection
 
         validated_docs = []
         blocked_count = 0
@@ -185,6 +188,7 @@ class SecureRAGAgent:
                 print(f"   • Sanitized {sanitized_count} document(s)")
             print()
 
+        self.last_validated_docs = validated_docs  # exposed for UI introspection
         return validated_docs
 
     def _validate_tool_call(self, tool_name: str, tool_input: Dict[str, Any]) -> Dict[str, Any]:

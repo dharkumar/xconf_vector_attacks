@@ -56,8 +56,9 @@ class VulnerableRAGAgentOllama:
         self.model = model or os.getenv("OLLAMA_MODEL", "llama3")
         self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.conversation_history = []
+        self.last_retrieved_docs = []  # exposed for UI introspection
         self.use_poisoned_kb = use_poisoned_kb
-        
+
         # Verify Ollama is running
         try:
             response = requests.get(f"{self.base_url}/api/tags", timeout=2)
@@ -145,7 +146,8 @@ Be fast, decisive, and helpful."""
         
         # Step 1: Retrieve relevant documents
         retrieved_docs = self.kb.search(user_query, n_results=3)
-        
+        self.last_retrieved_docs = retrieved_docs  # exposed for UI introspection
+
         if verbose:
             print_rag_context(retrieved_docs, user_query)
         
