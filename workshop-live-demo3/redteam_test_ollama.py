@@ -26,7 +26,16 @@ import os
 import sys
 import urllib.request
 
-sys.path.insert(0, os.getcwd())  # expects to be run from level-1-prompt-injection-attack/
+# Insert at index 1, not 0: Python auto-prepends this script's own directory
+# to sys.path[0] before this code runs, and that must keep priority over cwd
+# for module names both directories happen to share. Both this directory and
+# level-1-prompt-injection-attack/ have their own unrelated redteam_test.py
+# (this one defines ATTACKS/VARIANTS for the workshop demo; level-1's is a
+# different, older module) - inserting at 0 previously let level-1's cwd
+# copy shadow this directory's own, breaking `from redteam_test import
+# VARIANTS` with an ImportError. tools/agent still resolve from cwd as
+# intended, since this directory has no tools.py/agent.py of its own.
+sys.path.insert(1, os.getcwd())  # expects to be run with cwd = level-1-prompt-injection-attack/
 
 import tools  # noqa: E402
 from agent import create_agent_prompt  # noqa: E402
