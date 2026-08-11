@@ -1,0 +1,19 @@
+# RAG Poisoning Attack Demo - Dependencies
+
+# Core LLM
+anthropic>=0.40.0
+
+# Vector Database (ChromaDB with full embedded support)
+# Note: ChromaDB 0.4.24 requires NumPy 1.x (incompatible with NumPy 2.x)
+chromadb==0.4.24
+numpy>=1.22.5,<2.0.0  # Pin to 1.x for ChromaDB compatibility
+
+# Embeddings
+sentence-transformers>=2.2.0  # Free, local embeddings
+
+# Demo & Visualization
+streamlit>=1.28.0
+python-dotenv>=1.0.0
+
+# Utilities
+rich>=13.0.0  # Terminal formatting
