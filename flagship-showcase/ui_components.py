@@ -10,6 +10,7 @@ papers over a real key-naming inconsistency ("content" vs "document")
 between the Claude and Ollama RAG agent variants.
 """
 
+import json
 import subprocess
 import tempfile
 from contextlib import contextmanager
@@ -85,19 +86,35 @@ def doc_content(doc):
     return doc.get("content") or doc.get("document") or ""
 
 
+def _format_result(result):
+    if result is None:
+        return None
+    return result if isinstance(result, str) else json.dumps(result, indent=2)
+
+
 def render_tool_calls(tool_calls):
     if not tool_calls:
         st.caption("No tool calls made this run.")
         return
     for call in tool_calls:
         tool = call.get("tool", "?")
-        args = {k: v for k, v in call.items() if k != "tool"}
+        result = call.get("result")
+        args = {k: v for k, v in call.items() if k not in ("tool", "result")}
+        text = _format_result(result)
         if tool == "lookup_api_keys":
             with chat_bubble("assistant", "🚨 Credentials leaked"):
-                st.error("Called `lookup_api_keys()` -- credentials retrieved.")
+                st.error("Called `lookup_api_keys()` -- credentials retrieved:")
+                if text:
+                    # This is the whole point of the demo -- show what
+                    # actually came out, not just that something did.
+                    st.code(text[:1200] + ("..." if len(text) > 1200 else ""), language="text")
+                else:
+                    st.caption("(no result captured for this call)")
         else:
             with chat_bubble("assistant", "🔧 Tool call"):
                 st.caption(f"Called `{tool}({args})`")
+                if text:
+                    st.code(text[:600] + ("..." if len(text) > 600 else ""), language="text")
 
 
 def render_verdict(result):
@@ -109,6 +126,12 @@ def render_verdict(result):
             "direct, deterministic replay of the same tool call(s) this attack "
             "targets, proving the unprotected code provides no protection either way."
         )
+    # "reason" is only ever populated by the underlying scripts to explain
+    # a *success* (how it happened) -- a blocked run legitimately has none,
+    # since the real explanation is the remediation_notes rendered below.
+    # Only show the "- Reason: ..." line when there's an actual reason.
+    reason_line = f"\n- Reason: {result['reason']}" if result.get("reason") else ""
+
     if result["succeeded"]:
         st.error(f"🔴 Attack succeeded -- {result['reason']}")
     elif result["mode"] == "vulnerable":
@@ -116,13 +139,11 @@ def render_verdict(result):
             "**🟡 Blocked -- but don't trust it.**\n\n"
             "- This run's resistance came entirely from the model's own judgment\n"
             "- Nothing in the code enforced this -- a different prompt or a "
-            "different day could flip the result\n"
-            f"- Reason: {result['reason']}"
+            "different day could flip the result"
+            f"{reason_line}"
         )
     else:
-        st.success(
-            f"**🟢 Attack blocked.**\n\n- Reason: {result['reason']}"
-        )
+        st.success(f"**🟢 Attack blocked.**{reason_line}")
     for rem in result.get("remediation_notes") or []:
         st.info(f"**[{rem['id']}] {rem['title']}** -- {rem['detail']}")
 

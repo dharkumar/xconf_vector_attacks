@@ -121,7 +121,7 @@ def _run_workshop_attack(attack_name, mode, on_line=None) -> ScenarioResult:
     transcript = r.get("transcript", [])
     bot_texts = [ev["text"] for ev in transcript if ev.get("kind") == "bot_text" and ev.get("text")]
     tool_calls = [
-        {"tool": ev["tool"], **ev.get("args", {})}
+        {"tool": ev["tool"], **ev.get("args", {}), "result": ev.get("result")}
         for ev in transcript if ev.get("kind") == "tool_call"
     ]
     return ScenarioResult(
@@ -314,7 +314,7 @@ def _run_rag_poisoning(mode) -> ScenarioResult:
 # ---------------------------------------------------------------------------
 
 _WORKSHOP_ATTACK_NAMES = {
-    "prompt_injection": "tool_output_injection",
+    "prompt_injection": "benign_sender_audit_framing",
     "attachment": "hidden_multilingual_invoice_injection",
     "business_logic": "unenforced_refund_cap",
 }
@@ -393,12 +393,13 @@ def _apply_vulnerable_fallback(scenario_id, result):
         return result
 
     # result["tool_calls"] is flat ({"tool": name, **args}) everywhere else
-    # in this codebase (both the workshop transcript-derived list and
-    # shopbot_tools' own get_tool_call_history()) -- match that convention
-    # here too, even though the transcript entries below use a different,
-    # nested shape ({"tool":, "args":, "result":}), which is what
-    # transcript entries elsewhere already use.
-    flat_calls = [{"tool": c["tool"], **c["args"]} for c in fallback_calls]
+    # in this codebase -- match that shape, but keep "result" as its own
+    # sibling key (not spread into args) so the UI can show what actually
+    # came out of the call, not just that it happened. Real shopbot_tools
+    # tool_calls_log entries won't have this key at all (get_tool_call_history()
+    # never records results) -- the UI treats a missing "result" as "nothing
+    # captured," never as an error.
+    flat_calls = [{"tool": c["tool"], **c["args"], "result": c["result"]} for c in fallback_calls]
     result["tool_calls"] = list(result["tool_calls"]) + flat_calls
     if result.get("transcript") is not None:
         note = (

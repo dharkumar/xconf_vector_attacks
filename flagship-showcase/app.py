@@ -145,7 +145,7 @@ with st.container(border=True):
                     with chat_bubble("assistant", "🤖 ShopBot"):
                         st.write(ev["text"])
                 elif ev.get("kind") == "tool_call":
-                    render_tool_calls([{"tool": ev["tool"], **ev.get("args", {})}])
+                    render_tool_calls([{"tool": ev["tool"], **ev.get("args", {}), "result": ev.get("result")}])
         else:
             with chat_bubble("assistant", "🤖 ShopBot"):
                 st.write(result["reply_text"])
