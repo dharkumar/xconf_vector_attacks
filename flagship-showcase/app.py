@@ -13,11 +13,12 @@ Needs `ollama serve` running with llama3 (scenarios 1/2/3/5) and mistral
 
 import streamlit as st
 
-from adapters import current_branch, reset_agent_cache, run_scenario
+from adapters import WORKSHOP_DIR, current_branch, reset_agent_cache, run_scenario
 from scenario_registry import SCENARIOS, SCENARIOS_BY_ID
 from ui_components import (
     chat_bubble,
     render_retrieved_docs,
+    render_reveal_panel,
     render_tool_calls,
     render_verdict,
     typing_indicator,
@@ -99,6 +100,8 @@ with st.container(border=True):
         st.write(scenario["technical_detail"])
         if "payload" in scenario:
             st.code(scenario["payload"], language="text")
+        if "sample_pdf" in scenario:
+            render_reveal_panel(WORKSHOP_DIR / scenario["sample_pdf"], key_prefix=scenario_id)
 
 # --- "The chat bot itself" panel ------------------------------------------
 with st.container(border=True):
@@ -140,12 +143,31 @@ with st.container(border=True):
     result = st.session_state[result_key]
     if result is not None:
         if result.get("transcript"):
-            for ev in result["transcript"]:
+            transcript = result["transcript"]
+            # Only show tool-call results (always real -- the actual email,
+            # the actual PDF, the actual leaked file) and the FINAL reply
+            # (grounded, since it comes after the model has actually seen
+            # that real data). Intermediate bot_text is skipped: llama3
+            # often free-associates a guess about "the email" or "the
+            # invoice" before it's looked at either one, and that guess
+            # changes every run -- showing it reads as inconsistent/fake
+            # data rather than what it actually is (ungrounded narration).
+            bot_text_indices = [i for i, ev in enumerate(transcript) if ev.get("kind") == "bot_text" and ev.get("text")]
+            last_bot_text_idx = bot_text_indices[-1] if bot_text_indices else None
+            skipped_any = len(bot_text_indices) > 1
+            for i, ev in enumerate(transcript):
                 if ev.get("kind") == "bot_text" and ev.get("text"):
+                    if i != last_bot_text_idx:
+                        continue
                     with chat_bubble("assistant", "🤖 ShopBot"):
                         st.write(ev["text"])
                 elif ev.get("kind") == "tool_call":
                     render_tool_calls([{"tool": ev["tool"], **ev.get("args", {}), "result": ev.get("result")}])
+            if skipped_any:
+                st.caption(
+                    "(Some in-between reasoning was condensed for clarity -- "
+                    "the tool calls above show exactly what really happened.)"
+                )
         else:
             with chat_bubble("assistant", "🤖 ShopBot"):
                 st.write(result["reply_text"])

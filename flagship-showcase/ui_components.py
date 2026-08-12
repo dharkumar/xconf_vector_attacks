@@ -78,6 +78,43 @@ def extract_html_text(data):
     return "\n".join(parser.parts)
 
 
+def render_reveal_panel(sample_path, key_prefix):
+    """Upload a PDF (or use the real built-in sample) and see the actual
+    extracted text -- genuine extraction via pdftotext, not a mock. Ported
+    from workshop-live-demo/web_app.py's render_reveal_panel, simplified
+    for this app's single fixed PDF scenario."""
+    st.markdown("#### 🔍 Reveal the hidden layer")
+    st.caption(
+        "This attack's payload is a real PDF you can open and extract text "
+        "from yourself -- not just described in code. Genuine extraction, "
+        "not a mock: upload any PDF and see what actually comes out."
+    )
+    source = st.radio(
+        "File to extract from",
+        [f"Use the built-in sample ({sample_path.name})", "Upload my own PDF"],
+        horizontal=True,
+        key=f"{key_prefix}_reveal_source",
+    )
+    file_bytes = None
+    if source.startswith("Use the built-in"):
+        file_bytes = sample_path.read_bytes()
+    else:
+        uploaded = st.file_uploader("Upload a .pdf file", type=["pdf"], key=f"{key_prefix}_reveal_upload")
+        if uploaded is not None:
+            file_bytes = uploaded.read()
+
+    if file_bytes is not None:
+        extracted = extract_pdf_text(file_bytes)
+        st.code(extracted or "(no text extracted)", language="text")
+        if "lookup_api_keys" in extracted.lower():
+            st.error(
+                "🚨 Hidden instruction found in the extracted text -- invisible "
+                "when viewing or printing the file normally."
+            )
+        else:
+            st.success("No hidden instruction found in this file's extracted text.")
+
+
 def doc_identity(doc):
     return doc.get("id") or doc.get("metadata", {}).get("doc_id", "?")
 
@@ -118,14 +155,14 @@ def render_tool_calls(tool_calls):
 
 
 def render_verdict(result):
-    if result.get("used_deterministic_fallback"):
-        st.warning(
-            "**🟡 The model resisted this run on its own — not because of any code protection.**\n\n"
-            "Nothing in this branch enforces anything; a different prompt or a "
-            "different day could easily flip that result. What's shown below is a "
-            "direct, deterministic replay of the same tool call(s) this attack "
-            "targets, proving the unprotected code provides no protection either way."
-        )
+    # A tiny inline marker, not its own line -- blue is deliberately
+    # distinct from the red/green/yellow outcome colors, since this isn't
+    # a verdict, just a note about *how* the verdict was obtained. Detail
+    # lives in a collapsed footnote-style expander, zero footprint unless
+    # someone (the presenter) actually opens it.
+    used_fallback = result.get("used_deterministic_fallback")
+    marker = " 🔵" if used_fallback else ""
+
     # "reason" is only ever populated by the underlying scripts to explain
     # a *success* (how it happened) -- a blocked run legitimately has none,
     # since the real explanation is the remediation_notes rendered below.
@@ -133,17 +170,29 @@ def render_verdict(result):
     reason_line = f"\n- Reason: {result['reason']}" if result.get("reason") else ""
 
     if result["succeeded"]:
-        st.error(f"🔴 Attack succeeded -- {result['reason']}")
+        st.error(f"🔴 Attack succeeded{marker} -- {result['reason']}")
     elif result["mode"] == "vulnerable":
         st.warning(
-            "**🟡 Blocked -- but don't trust it.**\n\n"
+            f"**🟡 Blocked{marker} -- but don't trust it.**\n\n"
             "- This run's resistance came entirely from the model's own judgment\n"
             "- Nothing in the code enforced this -- a different prompt or a "
             "different day could flip the result"
             f"{reason_line}"
         )
     else:
-        st.success(f"**🟢 Attack blocked.**{reason_line}")
+        st.success(f"**🟢 Attack blocked{marker}.**{reason_line}")
+
+    if used_fallback:
+        with st.expander("🔵 footnote"):
+            st.caption(
+                "The model resisted on its own judgment this run -- not because "
+                "of any code-level protection. Nothing in this branch enforces "
+                "anything; a different prompt or a different day could easily "
+                "flip that result. What's shown above is a direct, deterministic "
+                "replay of the same tool call(s) this attack targets, proving the "
+                "unprotected code provides no protection either way."
+            )
+
     for rem in result.get("remediation_notes") or []:
         st.info(f"**[{rem['id']}] {rem['title']}** -- {rem['detail']}")
 
