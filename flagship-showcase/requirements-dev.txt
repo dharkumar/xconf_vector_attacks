@@ -1,0 +1,5 @@
+# Test-only dependencies -- not needed to run the app itself, only to run
+# tests/. Kept separate from requirements.txt so a presenter setting up
+# just to run the show doesn't need to install a test runner.
+-r requirements.txt
+pytest>=7.4.0

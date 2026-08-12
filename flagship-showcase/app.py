@@ -130,6 +130,10 @@ with st.container(border=True):
     if st.button("📩 Send to ShopBot", type="primary", key=f"send_{scenario_id}"):
         with typing_indicator() as slot:
             if scenario["backend"] == "workshop":
+                # on_line fires on every subprocess line from the SAME run
+                # that also produces the parsed result below -- streaming
+                # display and result-parsing share one subprocess call, not
+                # two, so the attack's underlying tool calls only fire once.
                 result = run_scenario(
                     scenario_id, mode,
                     on_line=lambda _line, all_lines: slot.code("".join(all_lines), language="text"),

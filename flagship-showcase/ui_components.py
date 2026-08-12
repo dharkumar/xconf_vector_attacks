@@ -1,22 +1,23 @@
 """
 Reusable Streamlit rendering helpers shared across all 5 scenarios.
 
-chat_bubble/extract_pdf_text/extract_html_text are ported verbatim (same
-implementation, not reinvented) from workshop-live-demo/web_app.py, which
-already proved out native-widget chat bubbles as more stable across
-Streamlit versions than hand-rolled HTML. doc_identity/doc_content are
-ported verbatim from rag_poisoning_attack/visual_demo_app.py, which already
-papers over a real key-naming inconsistency ("content" vs "document")
-between the Claude and Ollama RAG agent variants.
+chat_bubble/extract_pdf_text are ported verbatim (same implementation, not
+reinvented) from workshop-live-demo/web_app.py, which already proved out
+native-widget chat bubbles as more stable across Streamlit versions than
+hand-rolled HTML. doc_identity/doc_content live in adapters.py (which has
+no Streamlit dependency) and are re-exported here via import so this
+module's rendering code and adapters.py's retrieval code can't drift into
+two different definitions of "what identifies/contains a doc."
 """
 
 import json
 import subprocess
 import tempfile
 from contextlib import contextmanager
-from html.parser import HTMLParser
 
 import streamlit as st
+
+from adapters import doc_content, doc_identity  # noqa: F401 -- re-exported for callers of this module
 
 
 @contextmanager
@@ -59,25 +60,6 @@ def extract_pdf_text(data):
         return result.stdout
 
 
-class _AllTextExtractor(HTMLParser):
-    """Collects every text node regardless of CSS -- deliberately naive,
-    mirroring a pipeline that extracts "the email body as plain text"
-    without accounting for color:white / font-size:1px styling."""
-    def __init__(self):
-        super().__init__()
-        self.parts = []
-
-    def handle_data(self, data):
-        if data.strip():
-            self.parts.append(data.strip())
-
-
-def extract_html_text(data):
-    parser = _AllTextExtractor()
-    parser.feed(data.decode("utf-8", errors="replace"))
-    return "\n".join(parser.parts)
-
-
 def render_reveal_panel(sample_path, key_prefix):
     """Upload a PDF (or use the real built-in sample) and see the actual
     extracted text -- genuine extraction via pdftotext, not a mock. Ported
@@ -113,14 +95,6 @@ def render_reveal_panel(sample_path, key_prefix):
             )
         else:
             st.success("No hidden instruction found in this file's extracted text.")
-
-
-def doc_identity(doc):
-    return doc.get("id") or doc.get("metadata", {}).get("doc_id", "?")
-
-
-def doc_content(doc):
-    return doc.get("content") or doc.get("document") or ""
 
 
 def _format_result(result):
