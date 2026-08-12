@@ -86,20 +86,30 @@ def call_ollama(messages):
 _decoder = json.JSONDecoder()
 
 
-def extract_tool_call(text):
-    """Find the first JSON object in `text` containing a "tool" key, correctly
-    handling nested braces (e.g. a nested "args": {...}) which a brace-excluding
-    regex can't span."""
-    for i, ch in enumerate(text):
-        if ch != "{":
+def extract_tool_calls(text):
+    """Find every JSON object in `text` containing a "tool" key, not just
+    the first. A model narrating multiple tool calls in one response (its
+    own fabricated "[TOOL RESULT for ...]:" text included, which this
+    correctly ignores since that block has no "tool" key) would otherwise
+    have every call after the first silently dropped, while the model's
+    own narration claims they all ran -- a real, observed failure mode.
+    Correctly handles nested braces (e.g. a nested "args": {...}) which a
+    brace-excluding regex can't span."""
+    calls = []
+    i = 0
+    while i < len(text):
+        if text[i] != "{":
+            i += 1
             continue
         try:
-            obj, _ = _decoder.raw_decode(text, i)
+            obj, end = _decoder.raw_decode(text, i)
         except json.JSONDecodeError:
+            i += 1
             continue
         if isinstance(obj, dict) and "tool" in obj:
-            return obj.get("tool"), obj.get("args", {})
-    return None
+            calls.append((obj.get("tool"), obj.get("args", {})))
+        i = end
+    return calls
 
 
 def _print_leak_banner(tool_name, result):
@@ -114,20 +124,34 @@ def _print_leak_banner(tool_name, result):
 
 
 def strip_tool_call_json(text):
-    """Remove the embedded {"tool": ...} JSON blob from a reply, leaving
+    """Remove every embedded {"tool": ...} JSON blob from a reply, leaving
     just the natural-language part -- for a clean chat bubble instead of
     raw JSON syntax showing up in a customer-facing message."""
     decoder = json.JSONDecoder()
-    for i, ch in enumerate(text):
-        if ch != "{":
+    spans = []
+    i = 0
+    while i < len(text):
+        if text[i] != "{":
+            i += 1
             continue
         try:
             obj, end = decoder.raw_decode(text, i)
         except json.JSONDecodeError:
+            i += 1
             continue
         if isinstance(obj, dict) and "tool" in obj:
-            return (text[:i] + text[end:]).strip()
-    return text.strip()
+            spans.append((i, end))
+        i = end
+
+    if not spans:
+        return text.strip()
+    pieces = []
+    prev_end = 0
+    for start, end in spans:
+        pieces.append(text[prev_end:start])
+        prev_end = end
+    pieces.append(text[prev_end:])
+    return "".join(pieces).strip()
 
 
 def run_agent_ollama(task, max_iterations=6):
@@ -142,34 +166,43 @@ def run_agent_ollama(task, max_iterations=6):
         reply = call_ollama(messages)
         print(f"\n\U0001F999 {MODEL} response (iteration {i + 1}):\n   {reply.strip()}")
 
-        parsed = extract_tool_call(reply)
+        parsed_calls = extract_tool_calls(reply)
 
-        bot_text = strip_tool_call_json(reply) if parsed else reply.strip()
+        bot_text = strip_tool_call_json(reply) if parsed_calls else reply.strip()
         if bot_text:
             transcript.append({"kind": "bot_text", "text": bot_text})
 
-        if not parsed:
+        if not parsed_calls:
             break
 
-        tool_name, args = parsed
-        args = args if isinstance(args, dict) else {}
         messages.append({"role": "assistant", "content": reply})
 
-        if tool_name not in tools.AVAILABLE_FUNCTIONS:
-            result = {"error": f"unknown tool '{tool_name}'"}
-        else:
-            try:
-                result = tools.AVAILABLE_FUNCTIONS[tool_name](**args)
-            except Exception as e:  # noqa: BLE001 -- surfacing to the model as a tool error
-                result = {"error": str(e)}
+        # Execute every tool call the model made this turn, not just the
+        # first -- a model narrating several in one response (occasionally
+        # including its own fabricated "tool result" text, which
+        # extract_tool_calls ignores since it lacks a "tool" key) would
+        # otherwise have every call after the first silently skipped.
+        result_lines = []
+        for tool_name, args in parsed_calls:
+            args = args if isinstance(args, dict) else {}
 
-        tool_calls_log.append({"tool": tool_name, **args})
-        transcript.append({"kind": "tool_call", "tool": tool_name, "args": args, "result": result})
-        print(f"\U0001F527 Executed {tool_name}({args}) -> {result}")
-        _print_leak_banner(tool_name, result)
+            if tool_name not in tools.AVAILABLE_FUNCTIONS:
+                result = {"error": f"unknown tool '{tool_name}'"}
+            else:
+                try:
+                    result = tools.AVAILABLE_FUNCTIONS[tool_name](**args)
+                except Exception as e:  # noqa: BLE001 -- surfacing to the model as a tool error
+                    result = {"error": str(e)}
 
-        result_text = json.dumps(result) if isinstance(result, dict) else str(result)
-        messages.append({"role": "user", "content": f"[TOOL RESULT for {tool_name}]: {result_text}"})
+            tool_calls_log.append({"tool": tool_name, **args})
+            transcript.append({"kind": "tool_call", "tool": tool_name, "args": args, "result": result})
+            print(f"\U0001F527 Executed {tool_name}({args}) -> {result}")
+            _print_leak_banner(tool_name, result)
+
+            result_text = json.dumps(result) if isinstance(result, dict) else str(result)
+            result_lines.append(f"[TOOL RESULT for {tool_name}]: {result_text}")
+
+        messages.append({"role": "user", "content": "\n".join(result_lines)})
 
     return {"tool_calls": tool_calls_log, "transcript": transcript}
 

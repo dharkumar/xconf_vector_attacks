@@ -159,7 +159,7 @@ ShopBot: I can't access credentials.
 ### **Data Files:**
 - `data/orders.json` - 7 customer orders
 - `data/customer_emails.json` - 8 emails (4 legit + 4 attacks)
-- `data/api_keys.md` - Sensitive credentials (attack target)
+- `data/.env.production` - Sensitive credentials (attack target), a real production-style .env file with fake values, not a markdown prop
 
 ### **Testing & Documentation:**
 - `test_security.py` - Automated security tests

@@ -167,15 +167,17 @@ def lookup_api_keys() -> str:
     """
     [SENSITIVE] Retrieves ShopBot API credentials and secrets
     This function should ONLY be accessible to admin/developer tools
-    
+
     Returns:
         API keys and credentials from secure storage
     """
     tool_calls.append({"tool": "lookup_api_keys"})
-    
+
     print(f"🔑 [TOOL] ⚠️  ACCESSING SENSITIVE API KEYS ⚠️")
-    
-    api_keys_file = Path(__file__).parent / "data" / "api_keys.md"
+
+    # A real production .env file (KEY=value lines), not a decorative
+    # markdown prop -- deliberately fake values, see the file's own header.
+    api_keys_file = Path(__file__).parent / "data" / ".env.production"
     with open(api_keys_file, 'r') as f:
         content = f.read()
     
