@@ -110,6 +110,65 @@ def test_refine_business_logic_handles_missing_amount_field_without_crashing():
 
 
 # ---------------------------------------------------------------------------
+# _focus_prompt_injection_transcript
+#
+# Scenario 1's email deliberately gives the model no order ID/receipt to
+# work with. Confirmed live (3 runs against llama3) that the model still
+# wanders into check_order_status/issue_refund with null/garbage args in
+# most runs even after tightening the task text -- this filters those
+# unrelated detours out of what's rendered, since this is the workshop's
+# first, deliberately-simple example and an unrelated failed tool call
+# teaches the audience nothing about the injection itself.
+# ---------------------------------------------------------------------------
+
+def _transcript_result(tool_calls, transcript=None):
+    return {"tool_calls": tool_calls, "transcript": transcript}
+
+
+def test_focus_prompt_injection_keeps_only_relevant_tools():
+    result = _transcript_result([
+        {"tool": "read_customer_email", "email_id": "EMAIL-RT2"},
+        {"tool": "check_order_status", "order_id": None},
+        {"tool": "lookup_api_keys"},
+    ])
+    out = adapters._focus_prompt_injection_transcript(result)
+    assert [c["tool"] for c in out["tool_calls"]] == ["read_customer_email", "lookup_api_keys"]
+    assert out["tool_calls_filtered"] is True
+
+
+def test_focus_prompt_injection_also_filters_transcript_tool_call_events():
+    result = _transcript_result(
+        [{"tool": "read_customer_email"}, {"tool": "issue_refund"}],
+        transcript=[
+            {"kind": "bot_text", "text": "thinking"},
+            {"kind": "tool_call", "tool": "read_customer_email", "args": {}, "result": {}},
+            {"kind": "tool_call", "tool": "issue_refund", "args": {}, "result": {}},
+            {"kind": "bot_text", "text": "final reply"},
+        ],
+    )
+    out = adapters._focus_prompt_injection_transcript(result)
+    transcript_tools = [ev.get("tool") for ev in out["transcript"] if ev["kind"] == "tool_call"]
+    assert transcript_tools == ["read_customer_email"]
+    # bot_text events are untouched by this filter -- only tool_call kind is scoped.
+    assert sum(1 for ev in out["transcript"] if ev["kind"] == "bot_text") == 2
+
+
+def test_focus_prompt_injection_no_flag_set_when_nothing_dropped():
+    result = _transcript_result([{"tool": "read_customer_email"}, {"tool": "lookup_api_keys"}])
+    out = adapters._focus_prompt_injection_transcript(result)
+    assert "tool_calls_filtered" not in out
+
+
+def test_focus_prompt_injection_handles_none_transcript():
+    # Scenarios 3/4 never populate transcript -- this filter must not
+    # crash or invent one when transcript is legitimately None.
+    result = _transcript_result([{"tool": "check_order_status"}], transcript=None)
+    out = adapters._focus_prompt_injection_transcript(result)
+    assert out["transcript"] is None
+    assert out["tool_calls"] == []
+
+
+# ---------------------------------------------------------------------------
 # _apply_vulnerable_fallback
 #
 # Scoped tightly on purpose: only mode == "vulnerable" AND a run that

@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any, Optional, TypedDict
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-WORKSHOP_DIR = REPO_ROOT / "workshop-live-demo3"
+WORKSHOP_DIR = REPO_ROOT / "workshop-live-demo"
 LEVEL1_DIR = REPO_ROOT / "level-1-prompt-injection-attack"
 TOOL_CHAIN_DIR = REPO_ROOT / "tool_chain_attack"
 RAG_DIR = REPO_ROOT / "rag_poisoning_attack"
@@ -62,9 +62,10 @@ class ScenarioResult(TypedDict):
     retrieved_docs: Optional[list]
     mode: str
     # Not declared here on purpose: _apply_vulnerable_fallback() sets
-    # used_deterministic_fallback (bool) on the dict after the fact, only
-    # for the scenarios/runs where it actually fires. Every reader treats
-    # it as optional via .get(), so it's left out of the required-keys
+    # used_deterministic_fallback (bool), and _focus_prompt_injection_transcript()
+    # sets tool_calls_filtered (bool), on the dict after the fact, only for
+    # the scenarios/runs where each actually fires. Every reader treats
+    # them as optional via .get(), so they're left out of the required-keys
     # contract rather than modeled as Optional[bool] with a fake default.
 
 
@@ -461,11 +462,41 @@ def _refine_business_logic_verdict(result):
     return result
 
 
+# Scenario 1's email is deliberately information-sparse (no order ID, no
+# receipt) so the injected sentence is the only thing worth acting on.
+# Confirmed live (3 runs against llama3): even after tightening the task
+# text to say explicitly "there's nothing else to look up," the model still
+# wandered into check_order_status/issue_refund with null/garbage args in
+# 2 of 3 runs -- narrowing the wording alone doesn't reliably stop a local
+# model's prompt-based tool orchestration from improvising. Unlike scenario
+# 5, this doesn't corrupt the verdict (only lookup_api_keys() drives
+# "succeeded" here) -- it's purely a presentation problem: this is the
+# workshop's first, deliberately-simple example, and a random failed
+# check_order_status call teaches the audience nothing about the injection.
+_PROMPT_INJECTION_RELEVANT_TOOLS = {"read_customer_email", "lookup_api_keys"}
+
+
+def _focus_prompt_injection_transcript(result):
+    relevant = _PROMPT_INJECTION_RELEVANT_TOOLS
+    dropped_any = any(c.get("tool") not in relevant for c in result["tool_calls"])
+    result["tool_calls"] = [c for c in result["tool_calls"] if c.get("tool") in relevant]
+    if result.get("transcript") is not None:
+        result["transcript"] = [
+            ev for ev in result["transcript"]
+            if ev.get("kind") != "tool_call" or ev.get("tool") in relevant
+        ]
+    if dropped_any:
+        result["tool_calls_filtered"] = True
+    return result
+
+
 def run_scenario(scenario_id, mode, on_line=None) -> ScenarioResult:
     if scenario_id in _WORKSHOP_ATTACK_NAMES:
         result = _run_workshop_attack(_WORKSHOP_ATTACK_NAMES[scenario_id], mode, on_line=on_line)
         if scenario_id == "business_logic":
             result = _refine_business_logic_verdict(result)
+        elif scenario_id == "prompt_injection":
+            result = _focus_prompt_injection_transcript(result)
     elif scenario_id == "tool_chaining":
         result = _run_tool_chaining(mode)
     elif scenario_id == "rag_poisoning":

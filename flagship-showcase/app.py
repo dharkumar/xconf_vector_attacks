@@ -157,7 +157,10 @@ with st.container(border=True):
             # data rather than what it actually is (ungrounded narration).
             bot_text_indices = [i for i, ev in enumerate(transcript) if ev.get("kind") == "bot_text" and ev.get("text")]
             last_bot_text_idx = bot_text_indices[-1] if bot_text_indices else None
-            skipped_any = len(bot_text_indices) > 1
+            # Either kind of condensing (skipped narration OR a scenario-
+            # specific tool-call filter, e.g. prompt_injection dropping an
+            # unrelated check_order_status detour) gets the same footer note.
+            skipped_any = len(bot_text_indices) > 1 or result.get("tool_calls_filtered")
             for i, ev in enumerate(transcript):
                 if ev.get("kind") == "bot_text" and ev.get("text"):
                     if i != last_bot_text_idx:
@@ -168,8 +171,8 @@ with st.container(border=True):
                     render_tool_calls([{"tool": ev["tool"], **ev.get("args", {}), "result": ev.get("result")}])
             if skipped_any:
                 st.caption(
-                    "(Some in-between reasoning was condensed for clarity -- "
-                    "the tool calls above show exactly what really happened.)"
+                    "(Some in-between activity was condensed for clarity -- "
+                    "the tool calls above show what matters for this scenario.)"
                 )
         else:
             with chat_bubble("assistant", "🤖 ShopBot"):
