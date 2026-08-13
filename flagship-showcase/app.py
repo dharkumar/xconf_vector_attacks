@@ -29,7 +29,6 @@ st.set_page_config(page_title="ShopMart Support", page_icon="🛍️", layout="w
 st.markdown(
     """
     <style>
-    .stApp { background-color: #F7F7FB; }
     .flagship-banner {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 12px;
