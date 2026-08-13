@@ -50,26 +50,44 @@ any hidden payload.
 - Python 3.13
 - [Ollama](https://ollama.com) installed locally — no Anthropic API key needed, everything runs against local models
 
+**1. One-time: pull the two local models used across scenarios (~9GB total)**
 ```bash
-# 1. One-time: pull the two local models used across scenarios (~9GB total)
 ollama serve                       # leave running in its own terminal
 ollama pull llama3                 # scenarios 1, 2, 5
 ollama pull mistral                # scenarios 3, 4
+```
+(Same command on macOS, Linux, and Windows.)
 
-# 2. Set up the app's own virtual environment
+**2. Set up the app's own virtual environment, then run it**
+
+macOS / Linux:
+```bash
 cd flagship-showcase
 python3.13 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-
-# 3. Run (always via the venv's own streamlit, not a global install)
 .venv/bin/streamlit run app.py --server.port 8506
 ```
+
+Windows (PowerShell):
+```powershell
+cd flagship-showcase
+py -3.13 -m venv .venv
+.venv\Scripts\pip.exe install -r requirements.txt
+.venv\Scripts\streamlit.exe run app.py --server.port 8506
+```
+
+Always launch via the venv's own `streamlit` binary shown above, not a
+global/system install — a global `streamlit` won't have this app's
+dependencies (see Troubleshooting in `WORKSHOP_SETUP.md`).
 
 Then open `http://localhost:8506`. For why scenarios 3/4 are pinned to
 `mistral` instead of `llama3`, and how the app unifies three differently
 built backends into one UI, see
-[`flagship-showcase/README.md`](flagship-showcase/README.md). For install
-steps for every other app in this repo, see [`STARTUP.md`](STARTUP.md).
+[`flagship-showcase/README.md`](flagship-showcase/README.md). A
+standalone copy of the setup steps above lives in
+[`STARTUP.md`](STARTUP.md) / [`WORKSHOP_SETUP.md`](WORKSHOP_SETUP.md) —
+handy for sharing with workshop attendees who only need to get this one
+app running.
 
 ---
 
@@ -241,7 +259,8 @@ Mark and sanitize untrusted data sources:
 ```
 xconf_vector_attacks/
 ├── README.md                                # This file
-├── STARTUP.md                               # Install/run guide for every app below
+├── STARTUP.md                               # Shareable flagship-showcase setup guide
+├── WORKSHOP_SETUP.md                        # Same, worded for workshop attendees
 ├── WORKSHOP_SPEC.md                         # Original full specification document
 ├── Prompt injection explanation.docx        # ShopBot scenarios
 ├── Prompt Injection.docx                    # Attack vectors
@@ -289,8 +308,13 @@ xconf_vector_attacks/
     └── PRESENTER_GUIDE.md        # Full attack x remediation breakdown
 ```
 
-⚠️ `workshop-live-demo3/` has no git repository of its own — see `STARTUP.md`
-for why its branch-toggle tab needs care before you use it.
+⚠️ `workshop-live-demo3/` has no git repository of its own — its
+"vulnerable ↔ remediated" branch-toggle tab calls `git checkout <branch>`
+under the hood, and with no local repo here that command falls through to
+**the shared top-level repo** that every other demo folder lives in.
+Clicking that toggle could check out a branch across the whole shared
+project. If you look at this folder, stick to its first tab (the instant
+EMAIL-006 demo) and avoid the red-team suite's branch radio.
 
 ---
 
