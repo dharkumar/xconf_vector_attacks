@@ -1,4 +1,4 @@
-# Workshop Startup Guide
+# AI vector attacks - Workshop Startup Guide
 
 How to get `flagship-showcase` — the live-demo app for this workshop —
 running on your own laptop.
