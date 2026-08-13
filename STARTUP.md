@@ -7,12 +7,35 @@ running on your own laptop.
 
 1. **Python 3.13** (the app uses its own virtual environment, so other
    Python versions on your machine won't conflict).
-   - macOS/Linux: install from [python.org](https://www.python.org/downloads/)
-     or your package manager. Check with `python3.13 --version`.
-   - Windows: install from [python.org](https://www.python.org/downloads/)
-     (check "Add python.exe to PATH" during install) or via
-     `winget install Python.Python.3.13`. Check with `py -3.13 --version`.
-2. **Ollama**, for the free/offline/no-API-key path:
+
+   macOS:
+   ```bash
+   brew install python@3.13
+   python3.13 --version
+   ```
+
+   Linux: install via your package manager (e.g. `apt install python3.13`).
+
+   Windows: install from [python.org](https://www.python.org/downloads/)
+   — tick **"Add python.exe to PATH"** during install — or
+   `winget install Python.Python.3.13`. Check with `py -3.13 --version`.
+
+2. **poppler**, for `pdftotext` (used by `flagship-showcase` scenario 2 to
+   extract text from the hidden-injection PDF):
+
+   macOS:
+   ```bash
+   brew install poppler
+   ```
+
+   Linux: `apt install poppler-utils` (or your distro's equivalent).
+
+   Windows: `choco install poppler` (Chocolatey), `scoop install poppler`
+   (Scoop), or download from
+   [the poppler-windows releases page](https://github.com/oschwartz10612/poppler-windows/releases)
+   and add its `Library\bin` folder to PATH.
+
+3. **Ollama**, for the free/offline/no-API-key path:
 
    macOS:
    ```bash

@@ -46,19 +46,45 @@ any hidden payload.
 
 ### ⚙️ Installation Guide (flagship-showcase)
 
-**Prerequisites**
-- Python 3.13
-- [Ollama](https://ollama.com) installed locally — no Anthropic API key needed, everything runs against local models
+No Anthropic API key is needed — everything runs against local models via
+Ollama. You'll need Python 3.13, Ollama, and poppler (for scenario 2's PDF
+text extraction) installed first.
 
-**1. One-time: pull the two local models used across scenarios (~9GB total)**
+**1. Install Python 3.13**
+
+macOS:
+```bash
+brew install python@3.13
+python3.13 --version
+```
+
+Windows: install from [python.org](https://www.python.org/downloads/) —
+tick **"Add python.exe to PATH"** during install — or
+`winget install Python.Python.3.13`. Verify with `py -3.13 --version`.
+
+**2. Install poppler** (provides `pdftotext`, used by scenario 2 to extract
+text from the hidden-injection PDF)
+
+macOS:
+```bash
+brew install poppler
+```
+
+Windows: `choco install poppler` (Chocolatey) or `scoop install poppler`
+(Scoop), or download from
+[the poppler-windows releases page](https://github.com/oschwartz10612/poppler-windows/releases)
+and add its `Library\bin` folder to PATH.
+
+**3. Install Ollama and pull the two local models used across scenarios (~9GB total)**
 ```bash
 ollama serve                       # leave running in its own terminal
 ollama pull llama3                 # scenarios 1, 2, 5
 ollama pull mistral                # scenarios 3, 4
 ```
-(Same command on macOS, Linux, and Windows.)
+(Same command on macOS, Linux, and Windows — Windows' Ollama installer runs
+as a background service, so you may not need `ollama serve` manually.)
 
-**2. Set up the app's own virtual environment, then run it**
+**4. Set up the app's own virtual environment, then run it**
 
 macOS / Linux:
 ```bash
