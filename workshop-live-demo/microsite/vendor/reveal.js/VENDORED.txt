@@ -1,0 +1,1 @@
+reveal.js 6.0.1 (https://github.com/hakimel/reveal.js), vendored for offline workshop use.

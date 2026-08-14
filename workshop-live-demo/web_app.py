@@ -14,14 +14,12 @@ changes the running app's own source file -- only the files it invokes
 (redteam_test_ollama.py, tools_secure.py) differ between branches.
 
 Run (uses the level-1-prompt-injection-attack venv, which already has
-streamlit + anthropic installed -- that venv is rooted directly at the
-directory itself, see PYTHON_314_SOLUTION.md, not a .venv/venv subfolder):
-    ../level-1-prompt-injection-attack/bin/streamlit run web_app.py
+streamlit + anthropic installed):
+    ../level-1-prompt-injection-attack/.venv/bin/streamlit run web_app.py
 
 Requires `ollama serve` running locally for Tab 2.
 """
 
-import html
 import json
 import re
 import subprocess
@@ -35,24 +33,7 @@ import streamlit as st
 
 DEMO_DIR = Path(__file__).resolve().parent
 LEVEL1_DIR = DEMO_DIR.parent / "level-1-prompt-injection-attack"
-
-# level-1-prompt-injection-attack's venv has been created under a few
-# different names/locations across sessions -- most recently rooted directly
-# at the directory itself (see PYTHON_314_SOLUTION.md: the original 3.14 venv
-# was replaced with `python3.12 -m venv .`, i.e. no .venv/venv subfolder at
-# all). Try each known layout rather than hardcoding one that may not match
-# what's actually on disk.
-_VENV_PYTHON_CANDIDATES = [
-    LEVEL1_DIR / "bin" / "python3",         # venv rooted at the directory itself (current)
-    LEVEL1_DIR / ".venv" / "bin" / "python3",
-    LEVEL1_DIR / "venv" / "bin" / "python3",
-]
-VENV_PYTHON = next((c for c in _VENV_PYTHON_CANDIDATES if c.exists()), None)
-VENV_PYTHON_ERROR = None if VENV_PYTHON else (
-    "No Python venv found for level-1-prompt-injection-attack. Looked for: "
-    + ", ".join(str(c) for c in _VENV_PYTHON_CANDIDATES)
-    + ". See PYTHON_314_SOLUTION.md to set one up."
-)
+VENV_PYTHON = LEVEL1_DIR / ".venv" / "bin" / "python3"
 
 # redteam_test.py (the attack payload definitions) is identical on both
 # branches, so it's safe to import once here for display purposes --
@@ -93,83 +74,6 @@ ATTACK_PREVIEWS = {name: preview for name, _description, preview, _setup, _task 
 
 st.set_page_config(page_title="Prompt Injection Workshop", page_icon="\U0001F3AF", layout="wide")
 
-# Same visual theme as rag_poisoning_attack/visual_demo_app.py and
-# tool_chain_attack/visual_demo_app.py -- shared class names/colors so the
-# three workshop demo apps read as one suite.
-st.markdown("""
-<style>
-    .chat-message {
-        padding: 12px 16px;
-        margin: 8px 0;
-        border-radius: 18px;
-        max-width: 85%;
-        word-wrap: break-word;
-    }
-    .user-message {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        margin-left: auto;
-        border-radius: 18px 18px 4px 18px;
-        text-align: right;
-    }
-    .bot-message {
-        background: white;
-        color: #333;
-        margin-right: auto;
-        border-radius: 18px 18px 18px 4px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        border: 1px solid #eee;
-    }
-    .tool-call {
-        background-color: #fff3cd;
-        border-left: 4px solid #ffc107;
-        padding: 10px;
-        margin: 5px 0;
-        font-family: monospace;
-        border-radius: 4px;
-        color: #333;
-    }
-    .attack-success {
-        background-color: #f8d7da;
-        border-left: 4px solid #dc3545;
-        padding: 12px;
-        margin: 10px 0;
-        border-radius: 4px;
-        color: #721c24;
-    }
-    .attack-blocked {
-        background-color: #d4edda;
-        border-left: 4px solid #28a745;
-        padding: 12px;
-        margin: 10px 0;
-        border-radius: 4px;
-        color: #155724;
-    }
-    .attack-declined {
-        background-color: #fff3cd;
-        border-left: 4px solid #ffc107;
-        padding: 12px;
-        margin: 10px 0;
-        border-radius: 4px;
-        color: #664d03;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-
-def render_bubble(role, label, text):
-    """A themed chat bubble for plain-text content -- the HTML/CSS
-    counterpart to chat_bubble() below, matching the other two workshop
-    demo apps' look. Escaped: `text` can be a raw customer email body or
-    LLM output that itself echoes attacker-controlled content (that's the
-    whole point of this workshop), so it must never be trusted as HTML."""
-    css_class = "user-message" if role == "user" else "bot-message"
-    safe_text = html.escape(text).replace("\n", "<br>")
-    st.markdown(
-        f'<div class="chat-message {css_class}"><strong>{html.escape(label)}:</strong><br>{safe_text}</div>',
-        unsafe_allow_html=True
-    )
-
 
 def render_branch_badge(branch):
     """Native st.error/st.success -- red/green, guaranteed to render
@@ -186,12 +90,7 @@ def chat_bubble(role, label):
     st.columns + st.container(border=True) -- both stable, documented
     Streamlit APIs, unlike hacking st.chat_message's internal CSS
     classes (which vary across versions and can't be verified without
-    a browser).
-
-    Only used for the one case that genuinely needs nested live-updating
-    widgets (the "ShopBot is typing..." placeholder while a subprocess
-    streams output) -- everywhere else uses the themed render_bubble()
-    above for visual consistency with the other workshop demo apps."""
+    a browser)."""
     if role == "user":
         _, col = st.columns([1, 3])
     else:
@@ -386,73 +285,58 @@ with tab_chat:
     st.markdown("#### \U0001F4AC Conversation")
     customer_text = preview_customer_message(chat_attack_name, chat_variant_id)
     if customer_text:
-        render_bubble("user", "\U0001F464 Customer", customer_text)
+        with chat_bubble("user", "\U0001F464 Customer"):
+            st.write(customer_text)
     else:
         st.caption("(Couldn't preview this scenario's email -- it'll still show once you send.)")
 
     if st.button("\U0001F4E9 Send to ShopBot", type="primary", key="chat_send"):
-        if VENV_PYTHON is None:
-            st.error(VENV_PYTHON_ERROR)
+        git_checkout(chat_branch)
+        cmd = [str(VENV_PYTHON), str(DEMO_DIR / "redteam_test_ollama.py"), "--attack", chat_attack_name]
+        if chat_variant_id:
+            cmd += ["--variant", chat_variant_id]
+
+        with chat_bubble("assistant", "\U0001F916 ShopBot"):
+            st.caption("ShopBot is typing...")
+            live_placeholder = st.empty()
+            output = run_streaming(cmd, LEVEL1_DIR, live_placeholder, label=f"chat: {chat_attack_name}")
+
+        result_line = next((ln for ln in output.splitlines() if ln.startswith("RESULT_JSON: ")), None)
+        if result_line is None:
+            st.warning("No result returned -- check the backend terminal for errors.")
         else:
-            git_checkout(chat_branch)
-            cmd = [str(VENV_PYTHON), str(DEMO_DIR / "redteam_test_ollama.py"), "--attack", chat_attack_name]
-            if chat_variant_id:
-                cmd += ["--variant", chat_variant_id]
+            payload = json.loads(result_line[len("RESULT_JSON: "):])
+            r = payload["results"][0]
+            transcript = r.get("transcript", [])
 
-            with chat_bubble("assistant", "\U0001F916 ShopBot"):
-                st.caption("ShopBot is typing...")
-                live_placeholder = st.empty()
-                output = run_streaming(cmd, LEVEL1_DIR, live_placeholder, label=f"chat: {chat_attack_name}")
-
-            result_line = next((ln for ln in output.splitlines() if ln.startswith("RESULT_JSON: ")), None)
-            if result_line is None:
-                st.warning("No result returned -- check the backend terminal for errors.")
-            else:
-                payload = json.loads(result_line[len("RESULT_JSON: "):])
-                r = payload["results"][0]
-                transcript = r.get("transcript", [])
-
-                st.markdown("###### Cleaned-up conversation")
-                for ev in transcript:
-                    if ev["kind"] == "bot_text" and ev["text"]:
-                        render_bubble("assistant", "\U0001F916 ShopBot", ev["text"])
-                    elif ev["kind"] == "tool_call":
-                        tool_name, args, tool_result = ev["tool"], ev["args"], ev["result"]
-                        if tool_name == "lookup_api_keys" and isinstance(tool_result, str):
-                            st.markdown(
-                                '<div class="attack-success">\U0001F6A8 <strong>Credentials leaked</strong> -- '
-                                'called <code>lookup_api_keys()</code>, credentials retrieved:</div>',
-                                unsafe_allow_html=True
-                            )
+            st.markdown("###### Cleaned-up conversation")
+            for ev in transcript:
+                if ev["kind"] == "bot_text" and ev["text"]:
+                    with chat_bubble("assistant", "\U0001F916 ShopBot"):
+                        st.write(ev["text"])
+                elif ev["kind"] == "tool_call":
+                    tool_name, args, tool_result = ev["tool"], ev["args"], ev["result"]
+                    if tool_name == "lookup_api_keys" and isinstance(tool_result, str):
+                        with chat_bubble("assistant", "\U0001F6A8 Credentials leaked"):
+                            st.error("Called `lookup_api_keys()` -- credentials retrieved:")
                             st.code(tool_result[:500] + ("..." if len(tool_result) > 500 else ""), language="text")
-                        else:
-                            safe_args = html.escape(str(args))
-                            st.markdown(
-                                f'<div class="tool-call">\U0001F527 Called <strong>{html.escape(tool_name)}</strong>({safe_args})</div>',
-                                unsafe_allow_html=True
-                            )
+                    else:
+                        with chat_bubble("assistant", "\U0001F527 Tool call"):
+                            st.caption(f"Called `{tool_name}({args})`")
 
-                st.divider()
-                if r["succeeded"]:
-                    st.markdown(
-                        f'<div class="attack-success"><h3>\U0001F534 ATTACK SUCCEEDED</h3><p>{html.escape(r["reason"])}</p></div>',
-                        unsafe_allow_html=True
-                    )
-                elif chat_branch == "main":
-                    st.markdown(
-                        '<div class="attack-declined"><h3>\U0001F7E1 Attack blocked</h3>'
-                        "<p><code>main</code> has no remediations at all -- this run's resistance "
-                        "came entirely from the model's own judgment.</p></div>",
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.markdown(
-                        '<div class="attack-blocked"><h3>\U0001F7E2 Attack blocked</h3></div>',
-                        unsafe_allow_html=True
-                    )
+            st.divider()
+            if r["succeeded"]:
+                st.error(f"\U0001F534 ATTACK SUCCEEDED -- {r['reason']}")
+            elif chat_branch == "main":
+                st.warning(
+                    "\U0001F7E1 Attack blocked, but `main` has no remediations at all -- "
+                    "this run's resistance came entirely from the model's own judgment."
+                )
+            else:
+                st.success("\U0001F7E2 Attack blocked")
 
-                for rem in (r.get("remediations_fired") or []):
-                    st.info(f"**[{rem['id']}] {rem['title']}** -- {rem['detail']}")
+            for rem in (r.get("remediations_fired") or []):
+                st.info(f"**[{rem['id']}] {rem['title']}** -- {rem['detail']}")
 
     st.caption(f"Currently checked out: `{current_branch()}`")
 
@@ -502,55 +386,45 @@ with tab2:
     render_reveal_panel(attack_name, key_prefix="tab2")
 
     if st.button("Run against llama3", type="primary"):
-        if VENV_PYTHON is None:
-            st.error(VENV_PYTHON_ERROR)
-        else:
-            with st.status(f"Checking out `{branch_name}` and running `{attack_name}`...", expanded=True) as status:
-                git_checkout(branch_name)
-                placeholder = st.empty()
-                output = run_streaming(
-                    [str(VENV_PYTHON), str(DEMO_DIR / "redteam_test_ollama.py"), "--attack", attack_name],
-                    LEVEL1_DIR,
-                    placeholder,
-                    label=f"{branch_name} / {attack_name} (llama3)",
-                )
-                status.update(label="Done", state="complete")
+        with st.status(f"Checking out `{branch_name}` and running `{attack_name}`...", expanded=True) as status:
+            git_checkout(branch_name)
+            placeholder = st.empty()
+            output = run_streaming(
+                [str(VENV_PYTHON), str(DEMO_DIR / "redteam_test_ollama.py"), "--attack", attack_name],
+                LEVEL1_DIR,
+                placeholder,
+                label=f"{branch_name} / {attack_name} (llama3)",
+            )
+            status.update(label="Done", state="complete")
 
-            result_line = next((ln for ln in output.splitlines() if ln.startswith("RESULT_JSON: ")), None)
-            if result_line:
-                payload = json.loads(result_line[len("RESULT_JSON: "):])
-                r = payload["results"][0]
-                if r["succeeded"]:
-                    st.markdown(
-                        f'<div class="attack-success"><h3>\U0001F534 ATTACK SUCCEEDED</h3><p>{html.escape(r["reason"])}</p></div>',
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.markdown(
-                        '<div class="attack-blocked"><h3>\U0001F7E2 Attack blocked</h3></div>',
-                        unsafe_allow_html=True
-                    )
-
-                fired = r.get("remediations_fired") or []
-                if fired:
-                    st.markdown("##### \U0001F6E1️ Why this was blocked")
-                    for rem in fired:
-                        st.info(f"**[{rem['id']}] {rem['title']}**\n\n{rem['detail']}")
-                elif branch_name == "main":
-                    st.markdown(
-                        '<div class="attack-declined">No remediations exist in this codebase -- whatever '
-                        "resistance you just saw came entirely from the model's own judgment, not from any "
-                        "defense in the code. A different or future model could behave differently on the "
-                        "exact same input.</div>",
-                        unsafe_allow_html=True
-                    )
-                elif not r["succeeded"]:
-                    st.caption(
-                        "Blocked, but no specific remediation needed to act -- the model "
-                        "didn't attempt the sensitive part of this attack this run. Try "
-                        "again; local models are not fully deterministic."
-                    )
+        result_line = next((ln for ln in output.splitlines() if ln.startswith("RESULT_JSON: ")), None)
+        if result_line:
+            payload = json.loads(result_line[len("RESULT_JSON: "):])
+            r = payload["results"][0]
+            if r["succeeded"]:
+                st.error(f"\U0001F534 ATTACK SUCCEEDED -- {r['reason']}")
             else:
-                st.warning("Couldn't find a RESULT_JSON line in the output above -- check the log for errors.")
+                st.success("\U0001F7E2 Attack blocked")
+
+            fired = r.get("remediations_fired") or []
+            if fired:
+                st.markdown("##### \U0001F6E1️ Why this was blocked")
+                for rem in fired:
+                    st.info(f"**[{rem['id']}] {rem['title']}**\n\n{rem['detail']}")
+            elif branch_name == "main":
+                st.warning(
+                    "No remediations exist in this codebase -- whatever resistance you "
+                    "just saw came entirely from the model's own judgment, not from any "
+                    "defense in the code. A different or future model could behave "
+                    "differently on the exact same input."
+                )
+            elif not r["succeeded"]:
+                st.caption(
+                    "Blocked, but no specific remediation needed to act -- the model "
+                    "didn't attempt the sensitive part of this attack this run. Try "
+                    "again; local models are not fully deterministic."
+                )
+        else:
+            st.warning("Couldn't find a RESULT_JSON line in the output above -- check the log for errors.")
 
     st.caption(f"Currently checked out: `{current_branch()}`")

@@ -1,0 +1,529 @@
+/*
+  ShopBot Workshop theme — "hacker terminal meets flat cartoon"
+  Layered on top of reveal.js's dist/theme/black.css.
+  Palette reused from level-1-malicious-email/app.py for narrative consistency.
+*/
+
+:root {
+  --bg: #0d1117;
+  --bg-panel: #161b22;
+  --bg-panel-alt: #1c2333;
+  --border: #30363d;
+
+  --purple-1: #667eea;
+  --purple-2: #764ba2;
+  --magenta: #b968e0;
+  --red: #ff5c6c;
+  --red-dim: #dc3545;
+  --green: #3fd67a;
+  --green-dim: #28a745;
+  --amber: #ffc107;
+
+  --glow-purple: rgba(102, 126, 234, 0.35);
+  --glow-purple-strong: rgba(102, 126, 234, 0.55);
+  --scanline-opacity: 0.035;
+
+  --text: #e6edf3;
+  --muted: #8b949e;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* ---------- Base ---------- */
+
+.reveal {
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+.reveal-viewport {
+  background: radial-gradient(circle at 20% 10%, #1a2140 0%, var(--bg) 55%);
+}
+
+.scanline-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, var(--scanline-opacity)) 0px,
+    rgba(255, 255, 255, var(--scanline-opacity)) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+}
+
+.reveal h1, .reveal h2, .reveal h3 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  background: linear-gradient(90deg, var(--purple-1), var(--purple-2), var(--magenta));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.reveal h1 { font-size: 2.1em; }
+.reveal h2 { font-size: 1.5em; margin-bottom: 0.5em; }
+.reveal h3 { font-size: 1.05em; -webkit-text-fill-color: initial; background: none; color: var(--amber); }
+.reveal .title-slide h1 { font-size: 2.6em; }
+
+.reveal p, .reveal li { color: var(--text); line-height: 1.4; }
+.reveal .muted { color: var(--muted); font-size: 0.75em; }
+
+.reveal section { text-align: left; }
+.reveal section.center-slide { text-align: center; }
+
+/* Safety net: if a slide's content is ever taller than the fixed 720px
+   canvas (easy to overshoot when adding content later), scroll within
+   the slide instead of silently clipping at the bottom. Shouldn't
+   normally trigger -- content should be trimmed to fit -- but this
+   guarantees nothing is ever truly inaccessible during a live talk. */
+.reveal .slides section {
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.reveal .eyebrow {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.5em;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--purple-1);
+  border: 1px solid var(--purple-1);
+  border-radius: 999px;
+  padding: 0.2em 0.9em;
+  margin-bottom: 0.6em;
+}
+
+.reveal .eyebrow.glow-border {
+  box-shadow: 0 0 0 1px var(--glow-purple), 0 0 24px var(--glow-purple);
+}
+
+/* ---------- Badges ---------- */
+
+.badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.5em;
+  padding: 0.15em 0.7em;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.badge-red { background: rgba(255, 92, 108, 0.15); color: var(--red); border: 1px solid var(--red-dim); }
+.badge-green { background: rgba(63, 214, 122, 0.15); color: var(--green); border: 1px solid var(--green-dim); }
+.badge-amber { background: rgba(255, 193, 7, 0.15); color: var(--amber); border: 1px solid var(--amber); }
+.badge-purple { background: rgba(102, 126, 234, 0.15); color: var(--purple-1); border: 1px solid var(--purple-1); }
+
+/* ---------- Terminal / code panel ---------- */
+
+.terminal {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  margin: 0.5em 0;
+}
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #21262d;
+  border-bottom: 1px solid var(--border);
+}
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+.terminal-dot.red { background: #ff5f56; }
+.terminal-dot.yellow { background: #ffbd2e; }
+.terminal-dot.green { background: #27c93f; }
+.terminal-title { margin-left: 8px; font-family: var(--font-mono); font-size: 0.5em; color: var(--muted); }
+
+.terminal pre {
+  margin: 0;
+  padding: 0.9em 1em;
+  box-shadow: none;
+  width: auto;
+}
+.terminal pre code {
+  font-family: var(--font-mono);
+  font-size: 0.62em;
+  line-height: 1.5;
+  background: transparent;
+  padding: 0;
+  max-height: none;
+}
+.terminal:hover {
+  box-shadow: 0 0 0 1px var(--glow-purple), 0 8px 30px rgba(0,0,0,0.4), 0 0 24px var(--glow-purple);
+}
+
+/* Attack payload line reveal (fragment) */
+.payload-hidden {
+  border-radius: 4px;
+  padding: 0 2px;
+}
+.payload-hidden.fragment {
+  background: rgba(255, 92, 108, 0.18);
+  outline: 1px dashed var(--red);
+}
+.payload-hidden.fragment.visible {
+  animation: flash-red 0.6s ease-out;
+}
+@keyframes flash-red {
+  0% { background: rgba(255, 92, 108, 0.55); }
+  100% { background: rgba(255, 92, 108, 0.18); }
+}
+
+/* Purple analog of flash-red, for non-attack (defense/neutral) fragment reveals */
+.payload-note.fragment.visible {
+  animation: flash-purple 0.6s ease-out;
+}
+@keyframes flash-purple {
+  0% { background: rgba(102, 126, 234, 0.45); }
+  100% { background: rgba(102, 126, 234, 0.15); }
+}
+
+/* ---------- Attack / defense content blocks ---------- */
+
+.block {
+  border-radius: 10px;
+  padding: 0.8em 1em;
+  margin: 0.4em 0;
+  border-left: 4px solid var(--border);
+  background: var(--bg-panel);
+}
+.block-attack { border-left-color: var(--red-dim); }
+.block-defense { border-left-color: var(--green-dim); }
+.block-warning { border-left-color: var(--amber); }
+.block h4 {
+  margin: 0 0 0.3em 0;
+  font-size: 0.65em;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.block-attack h4 { color: var(--red); }
+.block-defense h4 { color: var(--green); }
+.block-warning h4 { color: var(--amber); }
+.block p, .block li { font-size: 0.68em; margin: 0.2em 0; }
+
+/* ---------- Layout helpers ---------- */
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2em;
+  align-items: start;
+}
+.columns.uneven-left { grid-template-columns: 1.3fr 1fr; }
+.columns.uneven-right { grid-template-columns: 1fr 1.3fr; }
+
+.stack { display: flex; flex-direction: column; gap: 0.5em; }
+
+/* ---------- Cards / grids ---------- */
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.7em;
+  margin-top: 0.6em;
+}
+.card-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+.card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7em 0.8em;
+}
+.card .card-icon { font-size: 1.4em; }
+.card h4 { margin: 0.3em 0 0.15em 0; font-size: 0.62em; color: var(--amber); text-transform: none; }
+.card p { font-size: 0.55em; color: var(--muted); margin: 0; }
+.card .icon { width: 1.8em; height: 1.8em; display: block; margin: 0 auto 0.3em auto; color: var(--purple-1); }
+
+.card-pending {
+  border-style: dashed;
+  opacity: 0.85;
+  text-align: center;
+}
+.card-pending .icon { opacity: 0.5; }
+.card-pending h4 { color: var(--amber); }
+
+/* ---------- Vector matrix table ---------- */
+
+.vector-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.55em;
+  margin-top: 0.5em;
+}
+.vector-table th, .vector-table td {
+  border: 1px solid var(--border);
+  padding: 0.6em 0.7em;
+  text-align: left;
+}
+.vector-table th {
+  background: var(--bg-panel-alt);
+  color: var(--purple-1);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 0.85em;
+  letter-spacing: 0.04em;
+}
+.vector-table tr.row-direct td:first-child { border-left: 4px solid var(--red-dim); }
+.vector-table tr.row-indirect td:first-child { border-left: 4px solid var(--amber); }
+.vector-table tr.row-multimodal td:first-child { border-left: 4px solid var(--purple-1); }
+.vector-table tr.row-stored td:first-child { border-left: 4px solid var(--green-dim); }
+
+/* ---------- SVG diagram containers ---------- */
+
+.diagram {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0.5em 0;
+}
+.diagram svg { max-width: 100%; height: auto; }
+.diagram-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  fill: var(--text);
+}
+.diagram-label-muted { fill: var(--muted); }
+.diagram-node-fill { fill: var(--bg-panel); stroke: var(--purple-1); stroke-width: 2; }
+.diagram-node-fill-alt { fill: var(--bg-panel); stroke: var(--amber); stroke-width: 2; }
+.diagram-arrow { stroke: var(--purple-1); stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+
+/* ---------- Lab slides: countdown timer ---------- */
+
+.lab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1em;
+}
+.countdown {
+  font-family: var(--font-mono);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.4em 0.9em;
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+}
+.countdown-digits {
+  font-size: 1.3em;
+  font-weight: 700;
+  color: var(--green);
+  min-width: 2.2em;
+  text-align: center;
+  text-shadow: 0 0 12px rgba(63, 214, 122, 0.5);
+}
+.countdown.warning .countdown-digits {
+  color: var(--amber);
+  text-shadow: 0 0 12px rgba(255, 193, 7, 0.5);
+}
+.countdown.expired .countdown-digits {
+  color: var(--red);
+  text-shadow: 0 0 12px rgba(255, 92, 108, 0.6);
+}
+.countdown-btn {
+  font-family: var(--font-mono);
+  font-size: 0.45em;
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 0.3em 0.6em;
+  cursor: pointer;
+}
+.countdown-btn:hover { border-color: var(--purple-1); }
+
+/* ---------- Timeline (Vector 4 / stored injection) ---------- */
+
+.timeline {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1em;
+  position: relative;
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 5%;
+  right: 5%;
+  height: 2px;
+  background: var(--border);
+}
+.timeline-node { text-align: center; width: 30%; }
+.timeline-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  margin: 0 auto 0.4em auto;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.9em;
+  border: 2px solid var(--purple-1);
+  background: var(--bg);
+  position: relative;
+  z-index: 1;
+}
+.timeline-node.alert .timeline-dot { border-color: var(--red-dim); }
+.timeline-node h4 { margin: 0; font-size: 0.6em; color: var(--amber); }
+.timeline-node p { font-size: 0.5em; color: var(--muted); margin: 0.2em 0 0 0; }
+
+/* ---------- Checklist (wrap-up) ---------- */
+
+.checklist { list-style: none; margin: 0; padding: 0; }
+.checklist li {
+  font-size: 0.75em;
+  padding: 0.35em 0 0.35em 1.6em;
+  position: relative;
+}
+.checklist li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ---------- Icon system (replaces all emoji + mascot SVGs) ---------- */
+
+.icon {
+  width: 1.4em;
+  height: 1.4em;
+  display: inline-block;
+  vertical-align: -0.25em;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex-shrink: 0;
+}
+.timeline-dot .icon { width: 1em; height: 1em; color: var(--purple-1); }
+.badge .icon { width: 1em; height: 1em; margin-right: 0.3em; }
+
+/* ---------- Trifecta triangle diagram ---------- */
+
+.trifecta-diagram {
+  display: flex;
+  justify-content: center;
+  margin: 0.6em 0;
+}
+.trifecta-diagram svg {
+  max-width: 320px;
+  width: 100%;
+  height: auto;
+}
+.trifecta-line {
+  stroke: var(--purple-1);
+  stroke-width: 1.5;
+  opacity: 0.6;
+}
+.trifecta-node circle {
+  fill: var(--bg-panel);
+  stroke: var(--purple-1);
+  stroke-width: 2;
+}
+.trifecta-node use { color: var(--purple-1); }
+.trifecta-node-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--text);
+  letter-spacing: 0.02em;
+}
+.trifecta-center circle {
+  fill: rgba(255, 92, 108, 0.15);
+  stroke: var(--red-dim);
+  stroke-width: 2;
+}
+.trifecta-center use { color: var(--red); }
+.trifecta-mini { transform: scale(0.6); transform-origin: center; }
+
+/* ---------- Quote / transition slides ---------- */
+
+.transition-quote {
+  font-size: 1.1em;
+  font-style: italic;
+  color: var(--text);
+  border-left: 4px solid var(--purple-1);
+  padding-left: 0.7em;
+  max-width: 80%;
+}
+
+/* ---------- Flow rows (linear step diagrams) ---------- */
+
+.flow-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  margin: 0.7em 0;
+  flex-wrap: nowrap;
+}
+.flow-arrow {
+  font-size: 1.3em;
+  color: var(--purple-1);
+  flex-shrink: 0;
+}
+.flow-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7em 0.9em;
+  text-align: center;
+  flex: 1;
+}
+.flow-card .flow-icon { font-size: 1.6em; display: block; margin-bottom: 0.2em; }
+.flow-card .icon { width: 1.8em; height: 1.8em; display: block; margin: 0 auto 0.2em auto; color: var(--purple-1); }
+.flow-card h4 { margin: 0; font-size: 0.55em; color: var(--text); -webkit-text-fill-color: initial; background: none; }
+.flow-card .flow-sub { font-size: 0.45em; color: var(--muted); font-family: var(--font-mono); }
+.flow-card.node-parser { border-color: var(--purple-1); }
+.flow-card.node-executor { border-color: var(--green-dim); }
+.flow-card.node-gate { border-color: var(--amber); }
+
+.json-label {
+  font-family: var(--font-mono);
+  font-size: 0.4em;
+  color: var(--muted);
+  text-align: center;
+  margin-top: -0.4em;
+}
+
+/* ---------- Chat bubble (direct injection mockup) ---------- */
+
+.chat-bubble {
+  position: relative;
+  background: var(--bg-panel);
+  border: 1px solid var(--red-dim);
+  border-radius: 14px 14px 14px 2px;
+  padding: 0.8em 1em;
+  max-width: 90%;
+  font-family: var(--font-mono);
+  font-size: 0.6em;
+  line-height: 1.5;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+}
+.chat-bubble .chat-from {
+  font-family: var(--font-sans);
+  font-size: 0.85em;
+  color: var(--red);
+  font-weight: 700;
+  margin-bottom: 0.4em;
+  display: block;
+}
+
+/* ---------- Speaker-note-visible print tweaks ---------- */
+
+@media print {
+  .countdown-btn { display: none; }
+  .scanline-overlay { display: none; }
+}

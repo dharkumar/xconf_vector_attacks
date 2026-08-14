@@ -13,7 +13,7 @@ Needs `ollama serve` running with llama3 (scenarios 1/2/3/5) and mistral
 
 import streamlit as st
 
-from adapters import WORKSHOP_DIR, current_branch, reset_agent_cache, run_scenario
+from adapters import WORKSHOP_DIR, reset_agent_cache, run_scenario
 from scenario_registry import SCENARIOS, SCENARIOS_BY_ID
 from ui_components import (
     chat_bubble,
@@ -70,15 +70,6 @@ with st.sidebar:
         ):
             st.session_state.current_scenario = s["id"]
             st.rerun()
-
-    st.divider()
-    st.caption(
-        f"workshop-live-demo repo currently checked out: `{current_branch()}`"
-    )
-    st.caption(
-        "Scenarios 1, 2, and 5 share this repo -- switching one's toggle "
-        "switches all three."
-    )
 
 scenario = SCENARIOS_BY_ID[st.session_state.current_scenario]
 scenario_id = scenario["id"]

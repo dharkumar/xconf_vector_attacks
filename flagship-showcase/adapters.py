@@ -5,8 +5,18 @@ directly; it only ever calls run_scenario() and reads a ScenarioResult.
 
 Backend shapes, confirmed by direct code exploration (see the plan for the
 full trace):
-  - Scenarios 1/2/5 (workshop-live-demo): subprocess + git branch checkout,
-    RESULT_JSON parsed from redteam_test_ollama.py's stdout.
+  - Scenarios 1/2/5 (workshop-live-demo): subprocess, RESULT_JSON parsed
+    from redteam_test_ollama.py's stdout. Vulnerable vs. protected is a
+    --mode flag passed on the command line (redteam_test_ollama.py picks
+    between tools.AVAILABLE_FUNCTIONS and tools_secure.AVAILABLE_FUNCTIONS_SECURE
+    internally) -- NOT a git branch checkout. This used to be branch-based
+    against an independent nested git repo; that repo's .git was destroyed
+    by an accidental `git add` of a directory that still had its own .git
+    (recorded as a submodule gitlink in the outer repo, then the nested
+    .git itself vanished). Rebuilt as a runtime flag instead specifically
+    so there is no git state here that can be lost the same way again --
+    workshop-live-demo is now just a plain, regularly-tracked directory in
+    this one repo.
   - Scenario 3 (tool_chain_attack): blocking in-process class call,
     .chat(str) -> str, tool history via shopbot_tools' module-level list.
   - Scenario 4 (rag_poisoning_attack): blocking in-process class call,
@@ -70,23 +80,8 @@ class ScenarioResult(TypedDict):
 
 
 # ---------------------------------------------------------------------------
-# Scenarios 1, 2, 5 -- workshop-live-demo (subprocess + git branch checkout)
+# Scenarios 1, 2, 5 -- workshop-live-demo (subprocess, --mode flag)
 # ---------------------------------------------------------------------------
-
-def git_checkout(branch):
-    subprocess.run(
-        ["git", "-C", str(WORKSHOP_DIR), "checkout", branch],
-        check=True, capture_output=True, text=True,
-    )
-
-
-def current_branch():
-    out = subprocess.run(
-        ["git", "-C", str(WORKSHOP_DIR), "branch", "--show-current"],
-        check=True, capture_output=True, text=True,
-    )
-    return out.stdout.strip()
-
 
 def run_streaming_lines(cmd, cwd):
     """Yields each line of subprocess output as it arrives, so the UI can
@@ -102,10 +97,10 @@ def run_streaming_lines(cmd, cwd):
 
 
 def _run_workshop_attack(attack_name, mode, on_line=None) -> ScenarioResult:
-    branch = "main" if mode == "vulnerable" else "remediations"
-    git_checkout(branch)
-
-    cmd = [str(VENV_PYTHON), str(WORKSHOP_DIR / "redteam_test_ollama.py"), "--attack", attack_name]
+    cmd = [
+        str(VENV_PYTHON), str(WORKSHOP_DIR / "redteam_test_ollama.py"),
+        "--attack", attack_name, "--mode", mode,
+    ]
     lines = []
     for line in run_streaming_lines(cmd, LEVEL1_DIR):
         lines.append(line)

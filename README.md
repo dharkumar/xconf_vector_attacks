@@ -328,19 +328,21 @@ xconf_vector_attacks/
 │   ├── visual_demo_app.py       # Streamlit visual demo
 │   └── knowledge_base_tools.py  # ChromaDB + sentence-transformers retrieval
 │
-└── workshop-live-demo3/                     # Colleague's snapshot of the main red-team suite (8 attacks)
+└── workshop-live-demo/                      # Main red-team suite (8 attacks)
     ├── web_app.py                # 3-tab product-style chat UI + live red-team suite
     ├── redteam_test_ollama.py    # Backs flagship-showcase scenarios 1, 2, 5
+    ├── tools_secure.py           # Remediated tool layer (Remediations A/B/C/D)
+    ├── ollama_client.py          # Shared Ollama HTTP client + JSON extraction
     └── PRESENTER_GUIDE.md        # Full attack x remediation breakdown
 ```
 
-⚠️ `workshop-live-demo3/` has no git repository of its own — its
-"vulnerable ↔ remediated" branch-toggle tab calls `git checkout <branch>`
-under the hood, and with no local repo here that command falls through to
-**the shared top-level repo** that every other demo folder lives in.
-Clicking that toggle could check out a branch across the whole shared
-project. If you look at this folder, stick to its first tab (the instant
-EMAIL-006 demo) and avoid the red-team suite's branch radio.
+Vulnerable vs. protected in `workshop-live-demo/` is a runtime `--mode
+vulnerable|protected` flag on `redteam_test_ollama.py`, not a git branch —
+this used to be two branches of an independent nested git repo inside this
+folder, which is exactly the kind of setup that's easy to destroy by
+accident (a stray `git add` of a directory that still has its own `.git`
+does exactly that). It's a plain tracked directory in this one repo now,
+same as everything else.
 
 ---
 
