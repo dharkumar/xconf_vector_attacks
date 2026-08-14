@@ -110,33 +110,35 @@ def test_refine_business_logic_handles_missing_amount_field_without_crashing():
 
 
 # ---------------------------------------------------------------------------
-# _focus_prompt_injection_transcript
+# _focus_transcript / _SCENARIO_RELEVANT_TOOLS
 #
 # Scenario 1's email deliberately gives the model no order ID/receipt to
-# work with. Confirmed live (3 runs against llama3) that the model still
-# wanders into check_order_status/issue_refund with null/garbage args in
-# most runs even after tightening the task text -- this filters those
-# unrelated detours out of what's rendered, since this is the workshop's
-# first, deliberately-simple example and an unrelated failed tool call
-# teaches the audience nothing about the injection itself.
+# work with, and Scenario 5's task is similarly open-ended ("handle their
+# refund request") -- both confirmed live to make the model wander into
+# check_order_status/issue_refund/etc. with null, garbage, or (for
+# Scenario 5) outright hallucinated order IDs that don't match the real
+# email it just read (email says "ORD-7788", fixture is correctly keyed to
+# "ORD-7788", but the model calls check_order_status(12345) anyway). This
+# filters those unrelated detours out of what's rendered -- neither
+# scenario's lesson has anything to do with order lookups.
 # ---------------------------------------------------------------------------
 
 def _transcript_result(tool_calls, transcript=None):
     return {"tool_calls": tool_calls, "transcript": transcript}
 
 
-def test_focus_prompt_injection_keeps_only_relevant_tools():
+def test_focus_transcript_keeps_only_relevant_tools():
     result = _transcript_result([
         {"tool": "read_customer_email", "email_id": "EMAIL-RT2"},
         {"tool": "check_order_status", "order_id": None},
         {"tool": "lookup_api_keys"},
     ])
-    out = adapters._focus_prompt_injection_transcript(result)
+    out = adapters._focus_transcript(result, adapters._SCENARIO_RELEVANT_TOOLS["prompt_injection"])
     assert [c["tool"] for c in out["tool_calls"]] == ["read_customer_email", "lookup_api_keys"]
     assert out["tool_calls_filtered"] is True
 
 
-def test_focus_prompt_injection_also_filters_transcript_tool_call_events():
+def test_focus_transcript_also_filters_transcript_tool_call_events():
     result = _transcript_result(
         [{"tool": "read_customer_email"}, {"tool": "issue_refund"}],
         transcript=[
@@ -146,26 +148,42 @@ def test_focus_prompt_injection_also_filters_transcript_tool_call_events():
             {"kind": "bot_text", "text": "final reply"},
         ],
     )
-    out = adapters._focus_prompt_injection_transcript(result)
+    out = adapters._focus_transcript(result, adapters._SCENARIO_RELEVANT_TOOLS["prompt_injection"])
     transcript_tools = [ev.get("tool") for ev in out["transcript"] if ev["kind"] == "tool_call"]
     assert transcript_tools == ["read_customer_email"]
     # bot_text events are untouched by this filter -- only tool_call kind is scoped.
     assert sum(1 for ev in out["transcript"] if ev["kind"] == "bot_text") == 2
 
 
-def test_focus_prompt_injection_no_flag_set_when_nothing_dropped():
+def test_focus_transcript_no_flag_set_when_nothing_dropped():
     result = _transcript_result([{"tool": "read_customer_email"}, {"tool": "lookup_api_keys"}])
-    out = adapters._focus_prompt_injection_transcript(result)
+    out = adapters._focus_transcript(result, adapters._SCENARIO_RELEVANT_TOOLS["prompt_injection"])
     assert "tool_calls_filtered" not in out
 
 
-def test_focus_prompt_injection_handles_none_transcript():
+def test_focus_transcript_handles_none_transcript():
     # Scenarios 3/4 never populate transcript -- this filter must not
     # crash or invent one when transcript is legitimately None.
     result = _transcript_result([{"tool": "check_order_status"}], transcript=None)
-    out = adapters._focus_prompt_injection_transcript(result)
+    out = adapters._focus_transcript(result, adapters._SCENARIO_RELEVANT_TOOLS["prompt_injection"])
     assert out["transcript"] is None
     assert out["tool_calls"] == []
+
+
+def test_focus_transcript_business_logic_drops_hallucinated_order_lookup():
+    # Reproduces the exact live bug: email says "ORD-7788" (and the fixture's
+    # check_order_status is correctly keyed to that ID), but the model calls
+    # check_order_status with an unrelated, hallucinated order_id anyway --
+    # must be dropped, since Scenario 5's lesson is the refund cap, not
+    # order lookups.
+    result = _transcript_result([
+        {"tool": "read_customer_email", "email_id": "EMAIL-RT5"},
+        {"tool": "check_order_status", "order_id": 12345},
+        {"tool": "issue_refund", "user_id": "CUST-778", "amount_usd": 2450.0},
+    ])
+    out = adapters._focus_transcript(result, adapters._SCENARIO_RELEVANT_TOOLS["business_logic"])
+    assert [c["tool"] for c in out["tool_calls"]] == ["read_customer_email", "issue_refund"]
+    assert out["tool_calls_filtered"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -241,3 +259,37 @@ def test_fallback_leaves_transcript_none_when_it_started_none():
     result = _fresh_result(mode="vulnerable", succeeded=False, transcript=None)
     out = adapters._apply_vulnerable_fallback("business_logic", result)
     assert out["transcript"] is None
+
+
+# ---------------------------------------------------------------------------
+# Regression test: get_tool_call_history() aliasing bug (Tool Chaining scenario)
+#
+# shopbot_tools.get_tool_call_history() returns its module-level list BY
+# REFERENCE, not a copy. _run_tool_chaining/_run_rag_poisoning used to store
+# that reference directly into the result dict's "tool_calls" key -- when
+# the vulnerable-mode fallback then fired and replayed the real
+# check_order_status/issue_refund calls directly (a deliberate, documented
+# side effect of proving the unprotected code allows the attack), those
+# calls appended to that SAME shared list, retroactively corrupting the
+# already-returned result: the UI showed duplicated tool-call entries, half
+# of them missing a "result" (the raw, un-fallback-flattened shape).
+# Confirmed live and fixed by snapshotting with list(...) at the point of
+# retrieval, in both _run_tool_chaining and _run_rag_poisoning.
+# ---------------------------------------------------------------------------
+
+def test_tool_call_history_snapshot_is_immune_to_later_appends():
+    import shopbot_tools
+
+    shopbot_tools.reset_tool_call_history()
+    shopbot_tools.tool_call_history.append({"tool": "check_order_status", "order_id": "ORD-9999"})
+
+    # Mirrors the fixed line in adapters.py: list(get_tool_call_history()).
+    snapshot = list(shopbot_tools.get_tool_call_history())
+
+    # Simulates a later side effect on the SAME shared list -- e.g. the
+    # vulnerable-mode fallback replaying a real tool call after this
+    # scenario's own result has already been built.
+    shopbot_tools.tool_call_history.append({"tool": "issue_refund", "user_id": "CUST-999", "amount_usd": 89.99})
+
+    assert snapshot == [{"tool": "check_order_status", "order_id": "ORD-9999"}]
+    assert len(shopbot_tools.get_tool_call_history()) == 2

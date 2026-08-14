@@ -122,8 +122,18 @@ def render_tool_calls(tool_calls):
                 else:
                     st.caption("(no result captured for this call)")
         else:
+            # A real, successfully-executed call (no "error" key in the
+            # result) is the actual proof this scenario exists to show --
+            # a muted caption reads as background noise on a projector.
+            # Give it a visible green box; keep genuine tool errors (a
+            # wrong argument, a not-found order) in a plain caption so
+            # they don't look like a fabricated "success."
+            succeeded_call = isinstance(result, dict) and "error" not in result
             with chat_bubble("assistant", "🔧 Tool call"):
-                st.caption(f"Called `{tool}({args})`")
+                if succeeded_call:
+                    st.success(f"✅ Executed `{tool}({args})`")
+                else:
+                    st.caption(f"Called `{tool}({args})`")
                 if text:
                     st.code(text[:600] + ("..." if len(text) > 600 else ""), language="text")
 

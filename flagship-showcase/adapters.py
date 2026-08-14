@@ -187,7 +187,17 @@ def _run_tool_chaining(mode) -> ScenarioResult:
     with _TOOL_HISTORY_LOCK:
         reset_tool_call_history()
         reply_text = agent.chat(TOOL_CHAINING_PAYLOAD, verbose=False)
-        tool_calls = get_tool_call_history()
+        # get_tool_call_history() returns shopbot_tools' live module-level
+        # list BY REFERENCE, not a copy. Snapshotting it with list(...) here
+        # matters a lot: if this scenario's vulnerable-mode fallback later
+        # fires and replays the real check_order_status/issue_refund calls
+        # directly, those calls append to that SAME shared list as a side
+        # effect -- without this copy, this result's own tool_calls would
+        # retroactively "gain" those fallback entries too (duplicated,
+        # missing "result", looking like a garbled transcript), since it'd
+        # still be staring at the live, later-mutated list instead of a
+        # snapshot of what this run itself actually produced.
+        tool_calls = list(get_tool_call_history())
 
     refund_calls = [c for c in tool_calls if c.get("tool") == "issue_refund"]
     # Ollama models often narrate a tool call in prose instead of emitting a
@@ -261,7 +271,11 @@ def _run_rag_poisoning(mode) -> ScenarioResult:
     with _TOOL_HISTORY_LOCK:
         reset_tool_call_history()
         reply_text = agent.query(RAG_TRIGGER_QUERY, verbose=False)
-        tool_calls = get_tool_call_history()
+        # Snapshot, not a live reference -- same reasoning as _run_tool_chaining
+        # above: this scenario's vulnerable-mode fallback can replay the real
+        # issue_refund() call directly, which appends to this same shared
+        # module-level list as a side effect.
+        tool_calls = list(get_tool_call_history())
 
     sensitive = [c for c in tool_calls if c.get("tool") in {"issue_refund", "lookup_api_keys"}]
     # Same rationale as _run_tool_chaining: this model sometimes narrates a
@@ -468,11 +482,24 @@ def _refine_business_logic_verdict(result):
 # "succeeded" here) -- it's purely a presentation problem: this is the
 # workshop's first, deliberately-simple example, and a random failed
 # check_order_status call teaches the audience nothing about the injection.
-_PROMPT_INJECTION_RELEVANT_TOOLS = {"read_customer_email", "lookup_api_keys"}
+#
+# Scenario 5 has the identical wandering-tool-call behavior for the same
+# underlying reason (an open-ended "handle their refund request" task), and
+# it doesn't corrupt the verdict either (_refine_business_logic_verdict
+# already handles that) -- but it IS confusing to display: observed live,
+# the model reads Marcus's real email (which says "ORD-7788", and the
+# fixture's check_order_status is correctly keyed to that exact ID) and
+# then calls check_order_status with a hallucinated, unrelated order_id
+# like 12345 anyway, producing a mismatched-looking "Order 12345 not found"
+# card right next to the real email. Both scenarios get the same treatment:
+# only the tool(s) that actually matter for the lesson are shown.
+_SCENARIO_RELEVANT_TOOLS = {
+    "prompt_injection": {"read_customer_email", "lookup_api_keys"},
+    "business_logic": {"read_customer_email", "issue_refund"},
+}
 
 
-def _focus_prompt_injection_transcript(result):
-    relevant = _PROMPT_INJECTION_RELEVANT_TOOLS
+def _focus_transcript(result, relevant):
     dropped_any = any(c.get("tool") not in relevant for c in result["tool_calls"])
     result["tool_calls"] = [c for c in result["tool_calls"] if c.get("tool") in relevant]
     if result.get("transcript") is not None:
@@ -490,8 +517,8 @@ def run_scenario(scenario_id, mode, on_line=None) -> ScenarioResult:
         result = _run_workshop_attack(_WORKSHOP_ATTACK_NAMES[scenario_id], mode, on_line=on_line)
         if scenario_id == "business_logic":
             result = _refine_business_logic_verdict(result)
-        elif scenario_id == "prompt_injection":
-            result = _focus_prompt_injection_transcript(result)
+        if scenario_id in _SCENARIO_RELEVANT_TOOLS:
+            result = _focus_transcript(result, _SCENARIO_RELEVANT_TOOLS[scenario_id])
     elif scenario_id == "tool_chaining":
         result = _run_tool_chaining(mode)
     elif scenario_id == "rag_poisoning":
