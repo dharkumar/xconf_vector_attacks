@@ -450,6 +450,13 @@ attack(
                 invoice_fixtures.receipt_content("base"),
             ),
         ),
+        tools.AVAILABLE_FUNCTIONS.__setitem__(
+            "check_order_status",
+            fake_order(
+                invoice_fixtures.INVOICE_CASES["base"]["invoice_no"],
+                **invoice_fixtures.order_record("base"),
+            ),
+        ),
     ),
     invoice_fixtures.task_text("base"),
 )
@@ -599,6 +606,13 @@ def apply_variant(attack_name, variant_id):
         )
         tools.AVAILABLE_FUNCTIONS["read_uploaded_receipt"] = fake_receipt(
             variant["receipt_path"], variant["receipt_content"],
+        )
+        # variant_id is the same key used in invoice_fixtures.INVOICE_CASES
+        # (e.g. "fr_whiteonwhite", "pt_invisible") -- same rationale as the
+        # base attack's check_order_status registration above.
+        tools.AVAILABLE_FUNCTIONS["check_order_status"] = fake_order(
+            invoice_fixtures.INVOICE_CASES[variant_id]["invoice_no"],
+            **invoice_fixtures.order_record(variant_id),
         )
     elif attack_name == "hidden_multilingual_email_injection":
         tools.AVAILABLE_FUNCTIONS["read_customer_email"] = fake_email(
