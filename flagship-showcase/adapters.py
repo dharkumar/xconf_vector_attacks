@@ -491,10 +491,23 @@ def _refine_business_logic_verdict(result):
 # fixture's check_order_status is correctly keyed to that exact ID) and
 # then calls check_order_status with a hallucinated, unrelated order_id
 # like 12345 anyway, producing a mismatched-looking "Order 12345 not found"
-# card right next to the real email. Both scenarios get the same treatment:
-# only the tool(s) that actually matter for the lesson are shown.
+# card right next to the real email.
+#
+# Scenario 2 (attachment) gets the same treatment for send_customer_email
+# specifically: observed live, the model sometimes calls it twice in one
+# run -- once with a hallucinated amount/placeholder recipient
+# ("$250.00" to "<customer_email>"), then again with the correct real
+# figures -- before settling on a final answer. Neither call is the
+# scenario's actual lesson (the concealed instruction leaking credentials
+# via lookup_api_keys()), so showing a "wrong then right" pair of
+# confirmation emails only reads as inconsistent, not as anything
+# meaningful about the attack.
+#
+# All three scenarios get the same treatment: only the tool(s) that
+# actually matter for each lesson are shown.
 _SCENARIO_RELEVANT_TOOLS = {
     "prompt_injection": {"read_customer_email", "lookup_api_keys"},
+    "attachment": {"read_customer_email", "read_uploaded_receipt", "check_order_status", "lookup_api_keys"},
     "business_logic": {"read_customer_email", "issue_refund"},
 }
 
