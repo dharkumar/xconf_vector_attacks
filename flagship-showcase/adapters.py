@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any, Optional, TypedDict
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-WORKSHOP_DIR = REPO_ROOT / "workshop-live-demo"
+WORKSHOP_DIR = REPO_ROOT / "workshop-live-demo3"
 LEVEL1_DIR = REPO_ROOT / "level-1-prompt-injection-attack"
 TOOL_CHAIN_DIR = REPO_ROOT / "tool_chain_attack"
 RAG_DIR = REPO_ROOT / "rag_poisoning_attack"
